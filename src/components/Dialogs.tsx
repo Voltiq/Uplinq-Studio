@@ -10,6 +10,7 @@ import { Button } from "./ui/Button";
 import { Checkbox, RadioList, Select, TextField, Toggle } from "./ui/Field";
 import { ProgressBar, Shortcut } from "./ui/Feedback";
 import { Modal } from "./ui/Modal";
+import { ReleaseNotes } from "./ReleaseNotes";
 import { t } from "../lib/i18n";
 
 // ---------------------------------------------------------------------------
@@ -325,7 +326,7 @@ export function UpdateDialog({
             {t("Transfers that are still running are cancelled when Uplinq Studio restarts.")}
           </p>
         )}
-        {update.body && <pre className="update-notes">{update.body}</pre>}
+        {update.body && <ReleaseNotes source={update.body} />}
         {installing && <ProgressBar value={progress ?? undefined} indeterminate={progress == null} label={t("Downloading the update")} />}
         {error && <p className="field-message is-error">{error}</p>}
         {!installing && <Checkbox label={t("Don’t ask at start")} checked={quiet} onChange={setQuiet} />}

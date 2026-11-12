@@ -2138,51 +2138,165 @@ body.is-resizing-rows * {
   color: var(--icon);
 }
 
-/* ----- Select ----- */
+/* ----- Select: the Graphiq dropdown (see Select in components/ui/Field.tsx) ----- */
 
-.select {
-  position: relative;
+.select-trigger {
   display: flex;
   align-items: center;
-}
-
-.select select {
+  gap: var(--space-100);
   width: 100%;
   height: 2.25rem;
-  padding: 0 var(--space-400) 0 0.6875rem;
+  padding: 0 0.625rem 0 0.6875rem;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--surface-2);
   color: var(--text);
+  font: inherit;
   font-weight: var(--font-weight-medium);
+  text-align: left;
   box-shadow: var(--inset-lo);
-  appearance: none;
   cursor: pointer;
   transition:
     border-color var(--duration-medium) var(--ease),
     box-shadow var(--duration-medium) var(--ease);
 }
 
-.select select:hover {
+.select-trigger:hover {
   border-color: var(--line-2);
 }
 
-.select select:focus-visible {
+.select-trigger:focus-visible,
+.select-trigger.is-open {
   outline: none;
   border-color: var(--accent-line);
   box-shadow: var(--focus-ring);
 }
 
-.select select option {
-  background: var(--surface-2);
-  color: var(--text);
+.select-trigger:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.select-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .select-chevron {
-  position: absolute;
-  right: 0.625rem;
+  flex: none;
   color: var(--icon-subtlest);
+  transition:
+    transform var(--duration-short) var(--ease),
+    color var(--duration-short) var(--ease);
+}
+
+.select-trigger.is-open .select-chevron {
+  transform: rotate(180deg);
+  color: var(--icon);
+}
+
+/* The open list (`.menu.select-menu`, so it wins over the plain menu rules below): the menu material, growing out of its trigger on a snappy spring with its
+   corners drawing in from rounder, the rows following in a short cascade. Out is quick and plain. */
+.menu.select-menu {
+  --select-spring: linear(0, 0.0259, 0.0918, 0.1825, 0.2862, 0.3939, 0.4992, 0.5976, 0.6864, 0.7641, 0.8302,
+    0.8849, 0.929, 0.9634, 0.9893, 1.008, 1.0208, 1.0287, 1.0329, 1.0342, 1.0335, 1.0313, 1.0283, 1.0247, 1.021,
+    1.0174, 1.014, 1.011, 1.0083, 1.006, 1.0041, 1.0025, 1.0013, 1.0004, 0.9998, 0.9993, 0.999, 0.9989, 0.9988,
+    0.9988, 0.9989, 0.999, 0.9991, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 10rem;
+  max-width: min(32rem, calc(100vw - 16px));
+  padding: 5px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform-origin: var(--origin, top center);
+  animation:
+    select-in 510ms var(--select-spring) both,
+    select-reveal 150ms var(--ease) both;
+}
+
+.menu.select-menu.is-up {
+  animation-name: select-in-up, select-reveal;
+}
+
+.menu.select-menu[data-state="closed"] {
   pointer-events: none;
+  animation: select-out 140ms var(--ease-in-practical) both;
+}
+
+@keyframes select-in {
+  from {
+    transform: translateY(-6px) scale(0.94);
+    border-radius: 22px;
+  }
+}
+
+@keyframes select-in-up {
+  from {
+    transform: translateY(6px) scale(0.94);
+    border-radius: 22px;
+  }
+}
+
+@keyframes select-reveal {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+  }
+  to {
+    filter: none;
+  }
+}
+
+@keyframes select-out {
+  to {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.97);
+    filter: blur(3px);
+  }
+}
+
+.menu-item.select-option {
+  grid-template-columns: minmax(0, 1fr) 1rem;
+  column-gap: 1.375rem;
+  animation: select-row 510ms var(--select-spring) both;
+}
+
+.menu.select-menu[data-state="closed"] .select-option {
+  animation: none;
+}
+
+@keyframes select-row {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+.menu-item.select-option.is-chosen {
+  color: var(--text-selected);
+  font-weight: var(--font-weight-semibold);
+}
+
+.select-option-check {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+}
+
+.select-option-check svg {
+  animation: select-check 320ms var(--spring) both;
+}
+
+@keyframes select-check {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
 }
 
 /* ----- Toggle: switches stretch before they snap ----- */
@@ -3882,18 +3996,60 @@ body.is-resizing-rows * {
   gap: var(--space-150);
 }
 
-.update-notes {
-  max-height: 14rem;
-  overflow: auto;
-  margin: 0;
-  padding: var(--space-150);
+.release-notes {
+  max-height: 16rem;
+  overflow-y: auto;
+  padding: var(--space-150) var(--space-200);
   border-radius: var(--radius-medium);
   background: var(--surface-2);
   color: var(--text-subtle);
-  font: inherit;
   font-size: var(--font-size-small);
-  white-space: pre-wrap;
+  line-height: 1.6;
   user-select: text;
+  scrollbar-width: thin;
+}
+
+.release-notes > * + * {
+  margin-top: var(--space-100);
+}
+
+.release-notes-heading {
+  color: var(--text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.release-notes ul,
+.release-notes ol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 1.25rem;
+}
+
+.release-notes ul {
+  list-style: disc;
+}
+
+.release-notes ol {
+  list-style: decimal;
+}
+
+.release-notes li::marker {
+  color: var(--text-subtlest);
+}
+
+.release-notes strong {
+  color: var(--text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.release-notes a {
+  color: var(--accent-text);
+}
+
+.release-notes code {
+  font-family: var(--font-code);
+  font-size: 0.95em;
 }
 
 .field-message.is-warning {

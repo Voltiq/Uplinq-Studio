@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0 — 2026-11-12
+
+### Added
+- **Dropdowns in the Graphiq look**, as in Graphiq, Magiq and Inq Studio: the language and protocol pickers
+  open a list in the app's own style instead of the white Windows one. The list springs out of its field
+  (or above it, when there is no room below), and works from the keyboard as before: arrows, Enter, Escape
+  and typing the first letters.
+
+### Changed
+- When a new version is out, the question at start shows its release notes formatted, with headings and
+  lists, instead of as plain text.
+
 ## 1.0.0 — 2026-11-12
 
 FTP Studio is now **Uplinq Studio**.
