@@ -23,6 +23,7 @@ import { Modal } from "../components/ui/Modal";
 import { EntryIcon } from "../lib/fileTypes";
 import { formatBytes, formatDate } from "../lib/format";
 import { cx } from "../lib/utils";
+import { t } from "../lib/i18n";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -187,7 +188,7 @@ function ConfirmDialog({
       footer={
         <>
           <Button appearance="subtle" onClick={() => onDone(false)}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button
             appearance={options.appearance ?? "primary"}
@@ -240,7 +241,7 @@ function PromptDialog({
       footer={
         <>
           <Button appearance="subtle" onClick={() => onDone(null)}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button appearance="primary" onClick={submit}>
             {options.confirmLabel}
@@ -289,40 +290,40 @@ function ConflictDialog({
   const describe = (info: { size: number | null; modified: number | null }) =>
     [info.size != null ? formatBytes(info.size) : null, formatDate(info.modified) || null]
       .filter(Boolean)
-      .join(" · ") || "Details unavailable";
+      .join(" · ") || t("Details unavailable");
 
   return (
     <Modal
-      title={`Replace “${options.name}”?`}
+      title={t("Replace “{0}”?", options.name)}
       width="medium"
       onClose={() => onDone(null)}
       footer={
         <>
           <Button appearance="subtle" onClick={() => choose("skip")}>
-            Skip
+            {t("Skip")}
           </Button>
-          <Button onClick={() => choose("rename")}>Keep both</Button>
+          <Button onClick={() => choose("rename")}>{t("Keep both")}</Button>
           <Button appearance="primary" onClick={() => choose("overwrite")} data-autofocus>
-            Replace
+            {t("Replace")}
           </Button>
         </>
       }
     >
       <p className="dialog-text">
-        A file with this name already exists in{" "}
+        {t("A file with this name already exists in")}{" "}
         <strong className="path-text" data-tooltip={options.folder}>
           {"“"}
           {folderName(options.folder)}
           {"”"}
         </strong>
-        {upload ? " on the server." : " on this PC."}
+        {upload ? t(" on the server.") : t(" on this PC.")}
       </p>
       <div className="conflict-compare">
         <div className="conflict-file">
           <EntryIcon name={options.name} isDir={false} size={24} />
           <div>
             <p className="conflict-file-title">
-              Existing file {upload ? "on the server" : "on this PC"}
+              {t("Existing file")}{" "}{upload ? t("on the server") : t("on this PC")}
             </p>
             <p className="conflict-file-meta">{describe(options.existing)}</p>
           </div>
@@ -331,7 +332,7 @@ function ConflictDialog({
           <EntryIcon name={options.name} isDir={false} size={24} />
           <div>
             <p className="conflict-file-title">
-              New file {upload ? "from this PC" : "from the server"}
+              {t("New file")}{" "}{upload ? t("from this PC") : t("from the server")}
             </p>
             <p className="conflict-file-meta">{describe(options.incoming)}</p>
           </div>
@@ -341,9 +342,11 @@ function ConflictDialog({
         <Checkbox
           checked={applyToAll}
           onChange={setApplyToAll}
-          label={`Do this for every conflict in the queue (${options.remaining.toLocaleString()} more ${
-            options.remaining === 1 ? "file" : "files"
-          } waiting)`}
+          label={
+            options.remaining === 1
+              ? t("Do this for every conflict in the queue (1 more file waiting)")
+              : t("Do this for every conflict in the queue ({0} more files waiting)", options.remaining.toLocaleString())
+          }
         />
       )}
     </Modal>
@@ -415,7 +418,7 @@ function ToastView({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
       </div>
       <IconButton
         icon={X}
-        label="Dismiss"
+        label={t("Dismiss")}
         spacing="compact"
         onClick={() => onDismiss(toast.id)}
       />

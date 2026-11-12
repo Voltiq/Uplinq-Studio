@@ -108,17 +108,20 @@ export function saveKnownHost(host: string, port: number, entry: KnownHost | nul
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  language: "system",
   theme: "system",
   conflictAction: "ask",
   confirmDelete: true,
   keepAlive: true,
   doubleClickFile: "transfer",
   showHidden: false,
+  updatePrompt: true,
 };
 
 export function loadSettings(): Settings {
   const settings = { ...DEFAULT_SETTINGS, ...(read<Partial<Settings>>(SETTINGS_KEY) ?? {}) };
   if (!["system", "light", "dark"].includes(settings.theme)) settings.theme = "system";
+  if (!["system", "en", "de"].includes(settings.language)) settings.language = "system";
   return settings;
 }
 

@@ -80,7 +80,7 @@ fn ssh_message(e: &russh::Error) -> String {
         }
         russh::Error::Disconnect => "The server closed the connection.".into(),
         russh::Error::NoCommonAlgo { kind, ours, theirs } => format!(
-            "This server only offers {kind:?} algorithms FTP Studio can't use (server: {}; FTP Studio: {}).",
+            "This server only offers {kind:?} algorithms Uplinq Studio can't use (server: {}; Uplinq Studio: {}).",
             theirs.join(", "),
             ours.join(", ")
         ),
@@ -111,7 +111,7 @@ async fn connect_tcp(host: &str, port: u16) -> Result<tokio::net::TcpStream, Str
 /// Reads an OpenSSH, PEM or PuTTY private key, with readable errors.
 fn load_key(path: &str, passphrase: Option<&str>) -> Result<keys::PrivateKey, String> {
     let text = std::fs::read_to_string(path).map_err(|e| match e.kind() {
-        ErrorKind::NotFound => format!("Can't find the key file {path}. Choose it again in the site settings."),
+        ErrorKind::NotFound => format!("Can't find the key file \u{201c}{path}\u{201d}. Choose it again in the site settings."),
         ErrorKind::InvalidData => "This isn't a private key file. Choose the key itself, not a certificate or .pub file.".into(),
         _ => format!("Couldn't read the key file: {}", describe_io(&e)),
     })?;
@@ -121,7 +121,7 @@ fn load_key(path: &str, passphrase: Option<&str>) -> Result<keys::PrivateKey, St
     }
     // Only AES-128 is supported for old-style encrypted PEM keys.
     if text.contains("DEK-Info:") && !text.contains("DEK-Info: AES-128-CBC,") {
-        return Err("This key is encrypted in an old format FTP Studio can't open. Convert it with \
+        return Err("This key is encrypted in an old format Uplinq Studio can't open. Convert it with \
                     \"ssh-keygen -p -f <key file>\", or save it as a .ppk file in PuTTYgen."
             .into());
     }

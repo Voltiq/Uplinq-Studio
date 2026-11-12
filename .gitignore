@@ -10,7 +10,6 @@ dist-ssr
 *.local
 release/
 src-tauri/target
-installer/
 
 # Signing keys never go in the repository
 *.key

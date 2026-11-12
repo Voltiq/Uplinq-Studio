@@ -187,12 +187,16 @@ export type ConflictAction = "ask" | "overwrite" | "skip" | "rename";
 export type ThemePreference = "system" | "light" | "dark";
 
 export interface Settings {
+  /** Fixed when the app starts: see lib/i18n.ts. */
+  language: "system" | "en" | "de";
   theme: ThemePreference;
   conflictAction: ConflictAction;
   confirmDelete: boolean;
   keepAlive: boolean;
   doubleClickFile: "transfer" | "open";
   showHidden: boolean;
+  /** Ask at start whether to install a newer version; otherwise just mention it. */
+  updatePrompt: boolean;
 }
 
 export type SortKey = "name" | "size" | "modified" | "kind";

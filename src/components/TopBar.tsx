@@ -14,6 +14,7 @@ import type { Site } from "../lib/types";
 import { MOD } from "../lib/utils";
 import { Button, IconButton } from "./ui/Button";
 import { Lozenge, Spinner, StatusDot } from "./ui/Feedback";
+import { t } from "../lib/i18n";
 
 export type ConnectionView =
   | { status: "idle" }
@@ -43,54 +44,51 @@ export function TopBar({
   onOpenShortcuts,
 }: Props) {
   return (
-    <header className="topbar">
-      <div className="topbar-start">
+    // The empty parts of the toolbar drag the window as well, like the title bar above it.
+    <header className="topbar" data-tauri-drag-region>
+      <div className="topbar-start" data-tauri-drag-region>
         <IconButton
           icon={PanelLeft}
-          label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+          label={sidebarOpen ? t("Hide sidebar") : t("Show sidebar")}
           shortcut={`${MOD}+B`}
           selected={sidebarOpen}
           onClick={onToggleSidebar}
         />
-        <div className="brand">
-          <img className="brand-glyph" src="/app-icon.svg" alt="" aria-hidden="true" />
-          <h1 className="brand-name">FTP Studio</h1>
-        </div>
       </div>
 
-      <div className="topbar-center">
+      <div className="topbar-center" data-tauri-drag-region>
         <ConnectionStatus connection={connection} />
       </div>
 
-      <div className="topbar-end">
+      <div className="topbar-end" data-tauri-drag-region>
         {connection.status === "lost" && (
           <Button iconBefore={RotateCw} onClick={onReconnect}>
-            Reconnect
+            {t("Reconnect")}
           </Button>
         )}
         {connection.status === "connected" || connection.status === "lost" ? (
           <Button iconBefore={Unplug} onClick={onDisconnect}>
-            Disconnect
+            {t("Disconnect")}
           </Button>
         ) : null}
         <Button
           iconBefore={connection.status === "idle" ? Plug : Server}
           onClick={onOpenSites}
           shortcut={`${MOD}+N`}
-          tooltip="Open the site manager"
+          tooltip={t("Open the site manager")}
         >
-          {connection.status === "idle" ? "Connect" : "Sites"}
+          {connection.status === "idle" ? t("Connect") : t("Sites")}
         </Button>
         <span className="topbar-divider" aria-hidden="true" />
         <IconButton
           icon={Keyboard}
-          label="Keyboard shortcuts"
+          label={t("Keyboard shortcuts")}
           shortcut="F1"
           onClick={onOpenShortcuts}
         />
         <IconButton
           icon={Settings}
-          label="Settings"
+          label={t("Settings")}
           shortcut={`${MOD}+,`}
           onClick={onOpenSettings}
         />
@@ -104,7 +102,7 @@ function ConnectionStatus({ connection }: { connection: ConnectionView }) {
     return (
       <div className="connection-status is-idle">
         <StatusDot status="offline" />
-        <span>Not connected</span>
+        <span>{t("Not connected")}</span>
       </div>
     );
   }
@@ -117,7 +115,7 @@ function ConnectionStatus({ connection }: { connection: ConnectionView }) {
     return (
       <div className="connection-status" role="status">
         <Spinner size={16} />
-        <span>Connecting to {site.host}…</span>
+        <span>{t("Connecting to {0}…", site.host)}</span>
       </div>
     );
   }
@@ -129,14 +127,14 @@ function ConnectionStatus({ connection }: { connection: ConnectionView }) {
       <span className="connection-address">{address}</span>
       <Lozenge title={info.label}>{info.short}</Lozenge>
       {connection.status === "lost" ? (
-        <Lozenge appearance="warning">Connection lost</Lozenge>
+        <Lozenge appearance="warning">{t("Connection lost")}</Lozenge>
       ) : connection.encrypted ? (
         <Lozenge
           appearance="success"
           icon={Lock}
-          title={`Your login and files are encrypted with ${site.protocol === "sftp" ? "SSH" : "TLS"}.`}
+          title={t("Your login and files are encrypted with {0}.", site.protocol === "sftp" ? "SSH" : "TLS")}
         >
-          Encrypted
+          {t("Encrypted")}
         </Lozenge>
       ) : (
         <Lozenge
@@ -144,11 +142,11 @@ function ConnectionStatus({ connection }: { connection: ConnectionView }) {
           icon={LockOpen}
           title={
             site.protocol === "ftp-auto"
-              ? "This server doesn't offer TLS, so your password and files are sent without encryption."
-              : "Plain FTP sends your password and files without encryption."
+              ? t("This server doesn't offer TLS, so your password and files are sent without encryption.")
+              : t("Plain FTP sends your password and files without encryption.")
           }
         >
-          Not encrypted
+          {t("Not encrypted")}
         </Lozenge>
       )}
     </div>

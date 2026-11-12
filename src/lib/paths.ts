@@ -1,4 +1,5 @@
 import type { PaneKind } from "./types";
+import { t } from "./i18n";
 
 export interface Crumb {
   label: string;
@@ -175,13 +176,13 @@ const INVALID_WINDOWS_CHARS = /[<>:"/\\|?*\u0000-\u001f]/;
 /** Returns an error message for an unusable file name, or null. */
 export function validateName(kind: PaneKind, name: string): string | null {
   const trimmed = name.trim();
-  if (!trimmed) return "Enter a name.";
-  if (trimmed === "." || trimmed === "..") return "Choose a different name.";
+  if (!trimmed) return t("Enter a name.");
+  if (trimmed === "." || trimmed === "..") return t("Choose a different name.");
   if (kind === "local" && INVALID_WINDOWS_CHARS.test(trimmed)) {
-    return 'Names can\'t contain  < > : " / \\ | ? *';
+    return t("Names can't contain  < > : \" / \\ | ? *");
   }
   if (kind === "remote" && trimmed.includes("/")) {
-    return "Names can't contain a slash.";
+    return t("Names can't contain a slash.");
   }
   return null;
 }

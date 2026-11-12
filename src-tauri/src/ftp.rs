@@ -181,7 +181,7 @@ pub fn open(opts: &ConnectOptions) -> Result<Opened, ConnectError> {
         Protocol::FtpsImplicit => open_implicit(opts),
         Protocol::Ftps => open_explicit(opts).map_err(|e| match e {
             Upgrade::NotOffered => {
-                "This server doesn't support FTP over TLS. Choose \u{201c}FTP, encrypted if available\u{201d} or plain FTP in the site settings.".to_string()
+                "This server doesn't support FTP over TLS. Choose \u{201c}FTP, encrypted if the server supports it\u{201d} or plain FTP in the site settings.".to_string()
             }
             Upgrade::Failed(message) => message,
         }),
@@ -280,7 +280,7 @@ fn describe_secure(e: &FtpError) -> String {
             let lower = reason.to_lowercase();
             if lower.contains("certificate") || lower.contains("trust") || lower.contains("cert") {
                 format!(
-                    "The server's certificate isn't trusted ({reason}). This usually means it's self-signed or expired. If you trust this server, turn on \u{201c}Trust any certificate\u{201d} under Advanced in the site settings."
+                    "The server's certificate isn't trusted. This usually means it's self-signed or expired. If you trust this server, turn on \u{201c}Trust any certificate\u{201d} under Advanced in the site settings. ({reason})"
                 )
             } else {
                 format!("The secure connection failed: {reason}.")

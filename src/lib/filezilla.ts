@@ -5,6 +5,7 @@
 import { PROTOCOLS } from "./protocols";
 import { emptySite } from "./storage";
 import type { Protocol, Site } from "./types";
+import { t } from "./i18n";
 
 export type ImportStatus = "new" | "duplicate" | "unsupported";
 
@@ -144,12 +145,12 @@ function parseServer(el: Element, folder: string, existing: Site[]): ImportCandi
   const site: Site = { ...emptySite(), name, host };
 
   if (!protocol) {
-    const what = UNSUPPORTED_NAMES[code] ?? "a protocol";
+    const what = UNSUPPORTED_NAMES[code] ?? t("a protocol");
     return {
       site,
       folder,
       status: "unsupported",
-      note: `Uses ${what}, which FTP Studio doesn't support.`,
+      note: t("Uses {0}, which Uplinq Studio doesn't support.", what),
       passwordMissing: false,
     };
   }
@@ -192,7 +193,7 @@ function parseServer(el: Element, folder: string, existing: Site[]): ImportCandi
     site,
     folder,
     status: duplicate ? "duplicate" : "new",
-    note: duplicate ? "Already in your sites." : undefined,
+    note: duplicate ? t("Already in your sites.") : undefined,
     passwordMissing,
   };
 }
@@ -201,15 +202,15 @@ function parseServer(el: Element, folder: string, existing: Site[]): ImportCandi
 export function parseFileZilla(xml: string, existing: Site[]): ImportCandidate[] {
   const doc = new DOMParser().parseFromString(xml, "application/xml");
   if (doc.getElementsByTagName("parsererror").length > 0) {
-    throw new Error("This file isn't valid XML. Choose a site list exported from FileZilla or FTP Studio.");
+    throw new Error(t("This file isn't valid XML. Choose a site list exported from FileZilla or Uplinq Studio."));
   }
   const root = doc.documentElement;
   if (root.nodeName !== "FileZilla3") {
-    throw new Error("This isn't a FileZilla site list. Choose a file exported from FileZilla or FTP Studio.");
+    throw new Error(t("This isn't a FileZilla site list. Choose a file exported from FileZilla or Uplinq Studio."));
   }
   const servers = child(root, "Servers");
   if (!servers) {
-    throw new Error("This file doesn't contain any sites. In FileZilla, export from the Site Manager.");
+    throw new Error(t("This file doesn't contain any sites. In FileZilla, export from the Site Manager."));
   }
 
   const found: ImportCandidate[] = [];

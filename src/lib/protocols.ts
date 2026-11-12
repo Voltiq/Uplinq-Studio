@@ -1,4 +1,5 @@
 import type { Protocol, Site } from "./types";
+import { t } from "./i18n";
 
 interface ProtocolInfo {
   /** Short name for badges: SFTP, FTPS, FTP. */
@@ -17,8 +18,8 @@ interface ProtocolInfo {
 export const PROTOCOLS: Record<Protocol, ProtocolInfo> = {
   sftp: {
     short: "SFTP",
-    label: "SFTP (SSH)",
-    description: "Secure file transfer over SSH. Most Linux servers offer it on port 22.",
+    label: t("SFTP (SSH)"),
+    description: t("Secure file transfer over SSH. Most Linux servers offer it on port 22."),
     defaultPort: 22,
     encrypted: true,
     scheme: "sftp",
@@ -26,8 +27,8 @@ export const PROTOCOLS: Record<Protocol, ProtocolInfo> = {
   },
   "ftp-auto": {
     short: "FTP",
-    label: "FTP, encrypted if the server supports it",
-    description: "Uses TLS when the server offers it and plain FTP otherwise, like FileZilla's default.",
+    label: t("FTP, encrypted if the server supports it"),
+    description: t("Uses TLS when the server offers it and plain FTP otherwise, like FileZilla's default."),
     defaultPort: 21,
     encrypted: false,
     scheme: "ftp",
@@ -35,8 +36,8 @@ export const PROTOCOLS: Record<Protocol, ProtocolInfo> = {
   },
   ftps: {
     short: "FTPS",
-    label: "FTPS, always encrypted",
-    description: "Requires FTP over TLS (explicit). Refuses to connect without encryption.",
+    label: t("FTPS, always encrypted"),
+    description: t("Requires FTP over TLS (explicit). Refuses to connect without encryption."),
     defaultPort: 21,
     encrypted: true,
     scheme: "ftpes",
@@ -44,8 +45,8 @@ export const PROTOCOLS: Record<Protocol, ProtocolInfo> = {
   },
   "ftps-implicit": {
     short: "FTPS",
-    label: "FTPS with implicit TLS",
-    description: "An older way to encrypt FTP, where TLS starts right away. Usually port 990.",
+    label: t("FTPS with implicit TLS"),
+    description: t("An older way to encrypt FTP, where TLS starts right away. Usually port 990."),
     defaultPort: 990,
     encrypted: true,
     scheme: "ftps",
@@ -53,8 +54,8 @@ export const PROTOCOLS: Record<Protocol, ProtocolInfo> = {
   },
   ftp: {
     short: "FTP",
-    label: "Plain FTP, not encrypted",
-    description: "Sends your password and files unencrypted. Only use it on networks you trust.",
+    label: t("Plain FTP, not encrypted"),
+    description: t("Sends your password and files unencrypted. Only use it on networks you trust."),
     defaultPort: 21,
     encrypted: false,
     scheme: "ftp",

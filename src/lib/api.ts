@@ -11,6 +11,7 @@ import type {
   TransferOutcome,
   WalkEntry,
 } from "./types";
+import { te } from "./i18n";
 
 interface RemoteEntryDto {
   name: string;
@@ -135,12 +136,12 @@ export const api = {
   fileZillaSitesPath: () => invoke<string | null>("filezilla_sites_path"),
 };
 
-/** Tauri rejects with plain strings; normalise anything else. */
+/** Tauri rejects with plain strings; normalise anything else. Messages from Rust are in English, so they are translated here. */
 export function errorText(e: unknown): string {
-  if (typeof e === "string") return e;
-  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return te(e);
+  if (e instanceof Error) return te(e.message);
   if (e && typeof e === "object" && "message" in e && typeof e.message === "string") {
-    return e.message;
+    return te(e.message);
   }
   return String(e);
 }

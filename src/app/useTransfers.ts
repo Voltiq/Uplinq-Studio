@@ -12,6 +12,7 @@ import {
 } from "../lib/paths";
 import type { ConflictAction, DragProgress, LogLevel, Transfer, TransferOutcome } from "../lib/types";
 import type { Services } from "./services";
+import { t as tx, te } from "../lib/i18n";
 
 export type NewTransfer = Omit<
   Transfer,
@@ -89,21 +90,26 @@ export function useTransfers(options: Options): Transfers {
     batchChoice.current = null;
     const { services } = optionsRef.current;
     if (stats.done === 0 && stats.failed === 0) return;
-    const verb =
-      stats.uploads && stats.downloads ? "Transferred" : stats.uploads ? "Uploaded" : "Downloaded";
+    const files = plural(stats.done, "file", "files");
+    const done =
+      stats.uploads && stats.downloads
+        ? tx("Transferred {0}", files)
+        : stats.uploads
+          ? tx("Uploaded {0}", files)
+          : tx("Downloaded {0}", files);
     if (stats.failed === 0) {
       services.toast({
         appearance: "success",
-        title: `${verb} ${plural(stats.done, "file", "files")}`,
-        description: `${formatBytes(stats.bytes)} in total.`,
+        title: done,
+        description: tx("{0} in total.", formatBytes(stats.bytes)),
       });
     } else {
       services.toast({
         appearance: stats.done ? "warning" : "error",
-        title: `${plural(stats.failed, "transfer", "transfers")} failed`,
+        title: tx("{0} failed", plural(stats.failed, "transfer", "transfers")),
         description: stats.done
-          ? `${plural(stats.done, "file", "files")} finished. Open the transfer list to see what went wrong and retry.`
-          : "Open the transfer list to see what went wrong and retry.",
+          ? tx("{0} finished. Open the transfer list to see what went wrong and retry.", plural(stats.done, "file", "files"))
+          : tx("Open the transfer list to see what went wrong and retry."),
       });
     }
   }, []);
@@ -112,7 +118,7 @@ export function useTransfers(options: Options): Transfers {
     async (t: Transfer) => {
       const { sessionId, log, services } = optionsRef.current;
       if (!sessionId) {
-        patch(t.id, { status: "failed", error: "You're not connected to a server.", finishedAt: Date.now() });
+        patch(t.id, { status: "failed", error: tx("You're not connected to a server."), finishedAt: Date.now() });
         batchStats.current.failed++;
         return;
       }
@@ -140,7 +146,7 @@ export function useTransfers(options: Options): Transfers {
       let overwrite = t.openWhenDone || optionsRef.current.conflictAction === "overwrite";
       let attempt = 1;
       const upload = t.direction === "upload";
-      log("info", `${upload ? "Uploading" : "Downloading"} ${t.name}`);
+      log("info", upload ? tx("Uploading {0}", t.name) : tx("Downloading {0}", t.name));
 
       try {
         for (;;) {
@@ -172,11 +178,11 @@ export function useTransfers(options: Options): Transfers {
             batchStats.current.bytes += outcome.bytes;
             if (upload) batchStats.current.uploads++;
             else batchStats.current.downloads++;
-            log("success", `${upload ? "Uploaded" : "Downloaded"} ${finished.name} (${formatBytes(outcome.bytes)})`);
+            log("success", upload ? tx("Uploaded {0} ({1})", finished.name, formatBytes(outcome.bytes)) : tx("Downloaded {0} ({1})", finished.name, formatBytes(outcome.bytes)));
             optionsRef.current.onFileDone(finished);
             if (t.openWhenDone) {
               api.open(localPath).catch((e) =>
-                services.toast({ appearance: "error", title: "Can't open the file", description: errorText(e) }),
+                services.toast({ appearance: "error", title: tx("Can't open the file"), description: errorText(e) }),
               );
             }
             return;
@@ -184,7 +190,7 @@ export function useTransfers(options: Options): Transfers {
 
           if (outcome.kind === "cancelled") {
             patch(t.id, { status: "cancelled", finishedAt: Date.now(), speed: 0 });
-            log("warning", `Cancelled ${t.name}`);
+            log("warning", tx("Cancelled {0}", t.name));
             return;
           }
 
@@ -192,7 +198,7 @@ export function useTransfers(options: Options): Transfers {
           let action = batchChoice.current ?? optionsRef.current.conflictAction;
           if (action === "ask") {
             const remaining = itemsRef.current.filter((x) => x.status === "queued").length;
-            patch(t.id, { note: "Already exists · waiting for your choice" });
+            patch(t.id, { note: tx("Already exists · waiting for your choice") });
             const choice = await services.conflict({
               name: upload ? basenameRemote(remotePath) : basenameLocal(localPath),
               direction: t.direction,
@@ -208,7 +214,7 @@ export function useTransfers(options: Options): Transfers {
 
           if (action === "skip") {
             patch(t.id, { status: "skipped", finishedAt: Date.now(), speed: 0 });
-            log("info", `Skipped ${t.name} because it already exists`);
+            log("info", tx("Skipped {0} because it already exists", t.name));
             return;
           }
           if (action === "overwrite") {
@@ -229,7 +235,7 @@ export function useTransfers(options: Options): Transfers {
         const message = errorText(e);
         patch(t.id, { status: "failed", error: message, finishedAt: Date.now(), speed: 0 });
         batchStats.current.failed++;
-        log("error", `${upload ? "Upload" : "Download"} of ${t.name} failed: ${message}`);
+        log("error", upload ? tx("Upload of {0} failed: {1}", t.name, message) : tx("Download of {0} failed: {1}", t.name, message));
       }
     },
     [patch],
@@ -366,14 +372,14 @@ export function useTransfers(options: Options): Transfers {
             transferred: p.transferred,
             speed: 0,
             status: p.status,
-            error: p.error ?? undefined,
+            error: p.error ? te(p.error) : undefined,
             addedAt: now,
             startedAt: now,
             finishedAt: p.status === "running" ? undefined : now,
             external: true,
           },
         ]);
-        if (p.status === "running") log("info", `Copying ${p.name} to File Explorer`);
+        if (p.status === "running") log("info", tx("Copying {0} to File Explorer", p.name));
         return;
       }
 
@@ -403,12 +409,12 @@ export function useTransfers(options: Options): Transfers {
         transferred: p.status === "done" ? p.transferred : existing.transferred,
         size: p.status === "done" ? p.transferred : existing.size,
         speed: 0,
-        error: p.error ?? undefined,
+        error: p.error ? te(p.error) : undefined,
         finishedAt: now,
       });
-      if (p.status === "done") log("success", `Copied ${p.name} to File Explorer (${formatBytes(p.transferred)})`);
-      else if (p.status === "failed") log("error", `Copying ${p.name} to File Explorer failed: ${p.error ?? "unknown error"}`);
-      else log("warning", `File Explorer stopped copying ${p.name}`);
+      if (p.status === "done") log("success", tx("Copied {0} to File Explorer ({1})", p.name, formatBytes(p.transferred)));
+      else if (p.status === "failed") log("error", tx("Copying {0} to File Explorer failed: {1}", p.name, p.error ? te(p.error) : tx("unknown error")));
+      else log("warning", tx("File Explorer stopped copying {0}", p.name));
     },
     [commit, patch],
   );
@@ -421,7 +427,7 @@ export function useTransfers(options: Options): Transfers {
     commit(
       itemsRef.current.map((t) =>
         t.status === "queued"
-          ? { ...t, status: "failed", error: "The connection was closed.", finishedAt: now }
+          ? { ...t, status: "failed", error: tx("The connection was closed."), finishedAt: now }
           : t,
       ),
     );

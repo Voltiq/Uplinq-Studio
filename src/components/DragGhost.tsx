@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import { EntryIcon } from "../lib/fileTypes";
 import type { FileEntry } from "../lib/types";
 import { cx } from "../lib/utils";
+import { t } from "../lib/i18n";
 
 export function DragGhost({
   entries,
@@ -21,10 +22,10 @@ export function DragGhost({
       <div className="drag-ghost-item">
         <EntryIcon name={first.name} isDir={first.isDir} />
         <span className="drag-ghost-name">
-          {entries.length === 1 ? first.name : `${entries.length.toLocaleString()} items`}
+          {entries.length === 1 ? first.name : t("{0} items", entries.length.toLocaleString())}
         </span>
       </div>
-      <div className="drag-ghost-hint">{hint ?? "Drop on the other side to transfer"}</div>
+      <div className="drag-ghost-hint">{hint ?? t("Drop on the other side to transfer")}</div>
     </div>,
     document.body,
   );

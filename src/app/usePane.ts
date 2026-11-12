@@ -4,6 +4,7 @@ import { typeInfo } from "../lib/fileTypes";
 import { parentPath, samePath } from "../lib/paths";
 import type { FileEntry, Listing, PaneKind, SortState } from "../lib/types";
 import { compareNames } from "../lib/utils";
+import { t } from "../lib/i18n";
 
 export interface Selection {
   selected: Set<string>;
@@ -156,7 +157,7 @@ export function usePane(
         if (!current.current.loaded || mode === "refresh") {
           setError(message);
         } else {
-          onErrorRef.current("Can't open this folder", message);
+          onErrorRef.current(t("Can't open this folder"), message);
         }
         return null;
       } finally {

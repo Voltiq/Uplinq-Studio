@@ -528,7 +528,7 @@ pub fn filezilla_sites_path() -> Option<String> {
 #[tauri::command]
 pub async fn temp_dir() -> Result<String, String> {
     blocking(|| {
-        let dir = std::env::temp_dir().join("FTP Studio");
+        let dir = std::env::temp_dir().join("Uplinq Studio");
         fs::create_dir_all(&dir).map_err(|e| io_message(&e, &dir))?;
         Ok(dir.to_string_lossy().into_owned())
     })

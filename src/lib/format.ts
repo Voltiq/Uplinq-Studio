@@ -1,8 +1,10 @@
+import { t } from "./i18n";
+
 const UNITS = ["bytes", "KB", "MB", "GB", "TB", "PB"];
 
 export function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0 bytes";
-  if (bytes < 1024) return bytes === 1 ? "1 byte" : `${bytes} bytes`;
+  if (!Number.isFinite(bytes) || bytes <= 0) return t("0 bytes");
+  if (bytes < 1024) return bytes === 1 ? t("1 byte") : t("{0} bytes", bytes);
   const i = Math.min(UNITS.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
   const value = bytes / 1024 ** i;
   const digits = value < 10 ? 1 : 0;
@@ -17,12 +19,12 @@ export function formatSpeed(bytesPerSecond: number): string {
 export function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "";
   const s = Math.round(seconds);
-  if (s < 1) return "under a second";
+  if (s < 1) return t("under a second");
   if (s < 60) return `${s} s`;
   const m = Math.floor(s / 60);
-  if (m < 60) return s % 60 ? `${m} min ${s % 60} s` : `${m} min`;
+  if (m < 60) return s % 60 ? t("{0} min {1} s", m, s % 60) : t("{0} min", m);
   const h = Math.floor(m / 60);
-  return m % 60 ? `${h} h ${m % 60} min` : `${h} h`;
+  return m % 60 ? t("{0} h {1} min", h, m % 60) : `${h} h`;
 }
 
 const timeFmt = new Intl.DateTimeFormat(undefined, {
@@ -53,8 +55,8 @@ export function formatDate(ms: number | null | undefined): string {
   const date = new Date(ms);
   const now = new Date();
   const dayDiff = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000);
-  if (dayDiff === 0) return `Today, ${timeFmt.format(date)}`;
-  if (dayDiff === 1) return `Yesterday, ${timeFmt.format(date)}`;
+  if (dayDiff === 0) return t("Today, {0}", timeFmt.format(date));
+  if (dayDiff === 1) return t("Yesterday, {0}", timeFmt.format(date));
   if (date.getFullYear() === now.getFullYear()) {
     return `${dayMonthFmt.format(date)}, ${timeFmt.format(date)}`;
   }
@@ -62,7 +64,7 @@ export function formatDate(ms: number | null | undefined): string {
 }
 
 export function formatDateLong(ms: number | null | undefined): string {
-  if (ms == null || !Number.isFinite(ms)) return "Unknown";
+  if (ms == null || !Number.isFinite(ms)) return t("Unknown");
   return longFmt.format(new Date(ms));
 }
 
@@ -75,7 +77,7 @@ export function formatClock(ms: number): string {
 }
 
 export function plural(n: number, one: string, many: string): string {
-  return `${n.toLocaleString()} ${n === 1 ? one : many}`;
+  return `${n.toLocaleString()} ${t(n === 1 ? one : many)}`;
 }
 
 export function formatPercent(done: number, total: number): string {

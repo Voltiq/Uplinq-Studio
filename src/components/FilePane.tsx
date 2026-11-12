@@ -25,6 +25,7 @@ import type { FileEntry, SortKey, SortState } from "../lib/types";
 import { cx, MOD } from "../lib/utils";
 import { FileList, type FileListHandle } from "./FileList";
 import { Button, IconButton } from "./ui/Button";
+import { t } from "../lib/i18n";
 
 export interface FilePaneHandle {
   focusList: () => void;
@@ -130,14 +131,14 @@ export const FilePane = forwardRef<FilePaneHandle, Props>(function FilePane(prop
             </Button>
             <IconButton
               icon={FolderPlus}
-              label="New folder"
+              label={t("New folder")}
               shortcut={`${MOD}+Shift+N`}
               onClick={onNewFolder}
             />
             <IconButton
               ref={moreRef}
               icon={Ellipsis}
-              label="More actions"
+              label={t("More actions")}
               onClick={() => moreRef.current && onMore(moreRef.current)}
             />
           </div>
@@ -149,21 +150,21 @@ export const FilePane = forwardRef<FilePaneHandle, Props>(function FilePane(prop
           <div className="button-group">
             <IconButton
               icon={ArrowLeft}
-              label="Back"
+              label={t("Back")}
               shortcut="Alt+Left"
               disabled={!pane.canBack}
               onClick={pane.back}
             />
             <IconButton
               icon={ArrowRight}
-              label="Forward"
+              label={t("Forward")}
               shortcut="Alt+Right"
               disabled={!pane.canForward}
               onClick={pane.forward}
             />
             <IconButton
               icon={ArrowUp}
-              label="Up one level"
+              label={t("Up one level")}
               shortcut="Backspace"
               disabled={!pane.parent}
               onClick={pane.up}
@@ -178,7 +179,7 @@ export const FilePane = forwardRef<FilePaneHandle, Props>(function FilePane(prop
           />
           <IconButton
             icon={RefreshCw}
-            label="Refresh"
+            label={t("Refresh")}
             shortcut="F5"
             onClick={() => void pane.refresh()}
             iconClassName={pane.loading ? "spin" : undefined}
@@ -198,7 +199,7 @@ export const FilePane = forwardRef<FilePaneHandle, Props>(function FilePane(prop
         {placeholder ?? (
           <FileList
             ref={listRef}
-            label={`${title} files`}
+            label={t("{0} files", title)}
             pane={pane}
             sort={props.sort}
             onSort={props.onSort}
@@ -219,8 +220,8 @@ export const FilePane = forwardRef<FilePaneHandle, Props>(function FilePane(prop
             empty={props.empty}
             errorActions={
               <>
-                <Button onClick={() => void pane.refresh()}>Try again</Button>
-                {pane.parent && <Button appearance="subtle" onClick={pane.up}>Go up one level</Button>}
+                <Button onClick={() => void pane.refresh()}>{t("Try again")}</Button>
+                {pane.parent && <Button appearance="subtle" onClick={pane.up}>{t("Go up one level")}</Button>}
               </>
             }
           />
@@ -237,16 +238,16 @@ export const FilePane = forwardRef<FilePaneHandle, Props>(function FilePane(prop
           <span>
             {pane.loaded
               ? pane.filter
-                ? `${plural(pane.visible.length, "match", "matches")} of ${pane.entries.length.toLocaleString()}`
+                ? t("{0} of {1}", plural(pane.visible.length, "match", "matches"), pane.entries.length.toLocaleString())
                 : plural(pane.visible.length, "item", "items")
               : " "}
             {pane.hiddenCount > 0 && !pane.filter && (
-              <span className="pane-footer-muted"> · {pane.hiddenCount.toLocaleString()} hidden</span>
+              <span className="pane-footer-muted"> · {t("{0} hidden", pane.hiddenCount.toLocaleString())}</span>
             )}
           </span>
           {selectedCount > 0 && (
             <span>
-              {plural(selectedCount, "item", "items")} selected
+              {t("{0} selected", plural(selectedCount, "item", "items"))}
               {selectedSize > 0 && <span className="pane-footer-muted"> · {formatBytes(selectedSize)}</span>}
             </span>
           )}
@@ -313,7 +314,7 @@ function PathBar({
           ref={inputRef}
           className="pathbar-input"
           value={draft}
-          aria-label="Folder path"
+          aria-label={t("Folder path")}
           spellCheck={false}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -343,7 +344,7 @@ function PathBar({
         }
       }}
     >
-      <nav className="pathbar-crumbs" ref={crumbsRef} aria-label="Folder path">
+      <nav className="pathbar-crumbs" ref={crumbsRef} aria-label={t("Folder path")}>
         {crumbs.map((c, i) => {
           const last = i === crumbs.length - 1;
           return (
@@ -376,8 +377,8 @@ const FilterField = forwardRef<
         ref={ref}
         className="filter-input"
         value={value}
-        placeholder="Filter"
-        aria-label="Filter by name"
+        placeholder={t("Filter")}
+        aria-label={t("Filter by name")}
         spellCheck={false}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
@@ -390,14 +391,14 @@ const FilterField = forwardRef<
             onExit();
           }
         }}
-        data-tooltip="Filter by name"
+        data-tooltip={t("Filter by name")}
         data-tooltip-kbd={`${MOD}+F`}
       />
       {value && (
         <button
           type="button"
           className="filter-clear"
-          aria-label="Clear filter"
+          aria-label={t("Clear filter")}
           onClick={() => {
             onChange("");
             onExit();

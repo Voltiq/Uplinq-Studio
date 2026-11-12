@@ -30,7 +30,8 @@ import { ServicesProvider, useServices } from "./app/services";
 import { usePane, type Pane } from "./app/usePane";
 import { useTransfers, type NewTransfer } from "./app/useTransfers";
 import { ConnectPanel } from "./components/ConnectPanel";
-import { PermissionsDialog, SettingsDialog, ShortcutsDialog } from "./components/Dialogs";
+import { PermissionsDialog, SettingsDialog, ShortcutsDialog, UpdateDialog } from "./components/Dialogs";
+import { TitleBar } from "./components/TitleBar";
 import { DragGhost } from "./components/DragGhost";
 import { FilePane, type FilePaneHandle } from "./components/FilePane";
 import { Sidebar } from "./components/Sidebar";
@@ -89,6 +90,8 @@ import type {
   Transfer,
 } from "./lib/types";
 import { clamp, cx, isEditableTarget, MOD } from "./lib/utils";
+import { t as tx } from "./lib/i18n";
+import { findUpdateQuietly, type Update } from "./lib/updates";
 
 const LAST_LOCAL_KEY = "ftp-studio.last-local";
 
@@ -224,7 +227,7 @@ function Workspace() {
   const localLoader = useCallback((path?: string) => api.localList(path ?? ""), []);
   const remoteLoader = useCallback((path?: string) => {
     const sid = sessionRef.current;
-    if (!sid) return Promise.reject("You're not connected to a server.");
+    if (!sid) return Promise.reject(tx("You're not connected to a server."));
     return api.list(sid, path);
   }, []);
   const local = usePane("local", localLoader, {
@@ -263,7 +266,7 @@ function Workspace() {
         found = await api.places();
         if (!cancelled) setPlaces(found);
       } catch (e) {
-        addLog("warning", `Couldn't list drives: ${errorText(e)}`);
+        addLog("warning", tx("Couldn't list drives: {0}", errorText(e)));
       }
       const last = localStorage.getItem(LAST_LOCAL_KEY);
       const opened = last ? await panesRef.current.local.navigate(last) : false;
@@ -323,6 +326,31 @@ function Workspace() {
     api.fileZillaSitesPath().then((p) => setFileZillaFound(!!p), () => {});
   }, []);
 
+  // ----- Updates: asked once at start, quietly when offline --------------------------
+  const [offeredUpdate, setOfferedUpdate] = useState<Update | null>(null);
+  const settingsForUpdate = useRef(settings);
+  settingsForUpdate.current = settings;
+  useEffect(() => {
+    // Development builds have no signed releases to compare against.
+    if (import.meta.env.DEV) return;
+    let live = true;
+    findUpdateQuietly().then((update) => {
+      if (!live || !update) return;
+      if (settingsForUpdate.current.updatePrompt) setOfferedUpdate(update);
+      else
+        toast({
+          appearance: "info",
+          title: tx("Uplinq Studio {0} is available", update.version),
+          description: tx("Install it from Settings › Updates."),
+        });
+    });
+    return () => {
+      live = false;
+    };
+    // Once per start.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const openSites = useCallback(
     (siteId?: string | null) => {
       if (siteId !== undefined) {
@@ -347,12 +375,12 @@ function Workspace() {
     const pending = transfers.summary.active + transfers.summary.queued;
     if (pending > 0 && options.askFirst !== false) {
       const ok = await confirm({
-        title: "Stop transfers and disconnect?",
+        title: tx("Stop transfers and disconnect?"),
         body:
           pending === 1
-            ? "A transfer is still running. Disconnecting cancels it."
-            : `${pending.toLocaleString()} transfers are still running or waiting. Disconnecting cancels them.`,
-        confirmLabel: "Disconnect",
+            ? tx("A transfer is still running. Disconnecting cancels it.")
+            : tx("{0} transfers are still running or waiting. Disconnecting cancels them.", pending.toLocaleString()),
+        confirmLabel: tx("Disconnect"),
         appearance: "warning",
       });
       if (!ok) return false;
@@ -361,9 +389,9 @@ function Workspace() {
     sessionRef.current = null;
     setConnection({ status: "idle" });
     remote.reset();
-    setWindowTitle("FTP Studio");
+    setWindowTitle(tx("Uplinq Studio"));
     api.disconnect(sid).catch(() => {});
-    addLog("info", "Disconnected");
+    addLog("info", tx("Disconnected"));
     if (activePane === "remote") setActivePane("local");
     return true;
   }
@@ -373,40 +401,38 @@ function Workspace() {
     const where = site.port !== 22 ? `${site.host}:${site.port}` : site.host;
     if (failure.kind === "hostKeyUnknown") {
       return confirm({
-        title: "Check the server's identity",
-        confirmLabel: "Trust and connect",
+        title: tx("Check the server's identity"),
+        confirmLabel: tx("Trust and connect"),
         body: (
           <div className="host-key">
             <p>
-              This is the first time you're connecting to <strong>{where}</strong>. To be sure it's really your server,
-              compare this fingerprint with the one from your hosting provider or administrator.
+              {tx("This is the first time you're connecting to")}{" "}<strong>{where}</strong>{tx(". To be sure it's really your server, compare this fingerprint with the one from your hosting provider or administrator.")}
             </p>
             <div className="host-key-box">
-              <span className="host-key-label">{failure.keyType} key fingerprint</span>
+              <span className="host-key-label">{tx("{0} key fingerprint", failure.keyType)}</span>
               <span className="host-key-value">{failure.fingerprint}</span>
             </div>
-            <p>FTP Studio remembers this server and warns you if its identity ever changes.</p>
+            <p>{tx("Uplinq Studio remembers this server and warns you if its identity ever changes.")}</p>
           </div>
         ),
       });
     }
     return confirm({
-      title: "The server's identity has changed",
-      confirmLabel: "Trust the new key",
+      title: tx("The server's identity has changed"),
+      confirmLabel: tx("Trust the new key"),
       appearance: "danger",
       body: (
         <div className="host-key">
           <p>
-            <strong>{where}</strong> identified itself with a different key than last time. This happens when a server
-            is reinstalled or moved, but it can also mean someone is intercepting the connection.
+            <strong>{where}</strong> {tx("identified itself with a different key than last time. This happens when a server is reinstalled or moved, but it can also mean someone is intercepting the connection.")}
           </p>
           <div className="host-key-box">
-            <span className="host-key-label">Trusted until now</span>
+            <span className="host-key-label">{tx("Trusted until now")}</span>
             <span className="host-key-value is-old">{failure.expected}</span>
-            <span className="host-key-label">Sent now ({failure.keyType})</span>
+            <span className="host-key-label">{tx("Sent now ({0})", failure.keyType)}</span>
             <span className="host-key-value">{failure.fingerprint}</span>
           </div>
-          <p>Only continue if you know the server changed, for example because its administrator told you.</p>
+          <p>{tx("Only continue if you know the server changed, for example because its administrator told you.")}</p>
         </div>
       ),
     });
@@ -420,11 +446,11 @@ function Workspace() {
     let password = site.password;
     if (!usesKey && !anonymous && site.username && !password) {
       const entered = await prompt({
-        title: `Log in to ${site.name || site.host}`,
-        label: `Password for ${site.username}`,
+        title: tx("Log in to {0}", site.name || site.host),
+        label: tx("Password for {0}", site.username),
         password: true,
-        confirmLabel: "Connect",
-        helper: site.rememberPassword ? undefined : "This site doesn't remember its password.",
+        confirmLabel: tx("Connect"),
+        helper: site.rememberPassword ? undefined : tx("This site doesn't remember its password."),
       });
       if (entered === null) return null;
       password = entered;
@@ -434,7 +460,7 @@ function Workspace() {
     const attempt = ++connectAttempt.current;
     setConnection({ status: "connecting", site, attempt });
     setLastError(null);
-    addLog("info", `Connecting to ${site.host}:${site.port} using ${PROTOCOLS[site.protocol].short}…`);
+    addLog("info", tx("Connecting to {0}:{1} using {2}…", site.host, site.port, PROTOCOLS[site.protocol].short));
     let hostKey = sftp ? loadKnownHost(site.host, site.port)?.fingerprint ?? null : null;
     try {
       let res: ConnectResult;
@@ -457,14 +483,14 @@ function Workspace() {
           addLog(
             e.kind === "hostKeyChanged" ? "warning" : "info",
             e.kind === "hostKeyChanged"
-              ? `${site.host} sent a different key than last time (${e.fingerprint})`
-              : `${site.host} identified itself with ${e.keyType} key ${e.fingerprint}`,
+              ? tx("{0} sent a different key than last time ({1})", site.host, e.fingerprint)
+              : tx("{0} identified itself with {1} key {2}", site.host, e.keyType, e.fingerprint),
           );
           const trusted = await confirmHostKey(site, e);
           if (attempt !== connectAttempt.current) return null;
           if (!trusted) {
             setConnection({ status: "idle" });
-            addLog("info", "Didn't connect because the server's identity wasn't confirmed");
+            addLog("info", tx("Didn't connect because the server's identity wasn't confirmed"));
             return null;
           }
           saveKnownHost(site.host, site.port, { fingerprint: e.fingerprint, keyType: e.keyType, added: Date.now() });
@@ -478,9 +504,9 @@ function Workspace() {
       sessionRef.current = res.sessionId;
       setConnection({ status: "connected", site, sessionId: res.sessionId, encrypted: res.encrypted });
       setSiteManager(null);
-      if (res.welcome) addLog("info", `Server says: ${res.welcome}`);
-      addLog("success", `Connected to ${site.host}${res.encrypted ? "" : " without encryption"}`);
-      setWindowTitle(`${site.name || site.host} – FTP Studio`);
+      if (res.welcome) addLog("info", tx("Server says: {0}", res.welcome));
+      addLog("success", tx("Connected to {0}{1}", site.host, res.encrypted ? "" : " without encryption"));
+      setWindowTitle(tx("{0} – Uplinq Studio", site.name || site.host));
       if (sites.some((s) => s.id === site.id)) {
         saveSite({ ...site, password: site.rememberPassword ? site.password : "", lastUsed: Date.now() });
       }
@@ -490,8 +516,8 @@ function Workspace() {
       if (!opened && startPath) {
         toast({
           appearance: "warning",
-          title: `Can't open ${startPath}`,
-          description: "Opened your home folder on the server instead.",
+          title: tx("Can't open {0}", startPath),
+          description: tx("Opened your home folder on the server instead."),
         });
         opened = await remote.navigate(res.cwd);
       }
@@ -504,7 +530,7 @@ function Workspace() {
       const message = errorText(e);
       setConnection({ status: "idle" });
       setLastError({ site, message });
-      addLog("error", `Couldn't connect to ${site.host}: ${message}`);
+      addLog("error", tx("Couldn't connect to {0}: {1}", site.host, message));
       return message;
     }
   }
@@ -512,7 +538,7 @@ function Workspace() {
   function cancelConnect() {
     connectAttempt.current++;
     setConnection({ status: "idle" });
-    addLog("info", "Connection attempt cancelled");
+    addLog("info", tx("Connection attempt cancelled"));
   }
 
   // Keep-alive: also notices when the server has gone away.
@@ -528,7 +554,7 @@ function Workspace() {
           setConnection((c) =>
             c.status === "connected" && c.sessionId === sessionId ? { ...c, status: "lost" } : c,
           );
-          addLog("warning", `Lost the connection to the server: ${errorText(e)}`);
+          addLog("warning", tx("Lost the connection to the server: {0}", errorText(e)));
         },
       );
     }, 30_000);
@@ -541,9 +567,9 @@ function Workspace() {
     if (!sid) {
       toast({
         appearance: "warning",
-        title: "Connect to a server first",
-        description: "Pick a site in the sidebar, or open the site manager.",
-        actions: [{ label: "Open sites", onClick: () => openSites() }],
+        title: tx("Connect to a server first"),
+        description: tx("Pick a site in the sidebar, or open the site manager."),
+        actions: [{ label: tx("Open sites"), onClick: () => openSites() }],
       });
     }
     return sid;
@@ -554,7 +580,7 @@ function Workspace() {
     if (!sid || entries.length === 0) return;
     const items: NewTransfer[] = [];
     const folders: string[] = [];
-    if (entries.some((e) => e.isDir)) setBusy((b) => ({ ...b, local: "Preparing upload…" }));
+    if (entries.some((e) => e.isDir)) setBusy((b) => ({ ...b, local: tx("Preparing upload…") }));
     try {
       for (const e of entries) {
         if (!e.isDir) {
@@ -583,14 +609,14 @@ function Workspace() {
               });
           }
         } catch (err) {
-          toast({ appearance: "error", title: `Can't read “${e.name}”`, description: errorText(err) });
+          toast({ appearance: "error", title: tx("Can't read “{0}”", e.name), description: errorText(err) });
         }
       }
       if (folders.length > 0) {
         try {
           await api.mkdirs(sid, folders);
         } catch (err) {
-          toast({ appearance: "error", title: "Can't create folders on the server", description: errorText(err) });
+          toast({ appearance: "error", title: tx("Can't create folders on the server"), description: errorText(err) });
           return;
         }
         if (samePath("remote", remoteFolder, panesRef.current.remote.path)) void remote.refresh();
@@ -600,9 +626,9 @@ function Workspace() {
     }
     if (items.length > 0) {
       transfers.enqueue(items);
-      addLog("info", `Queued ${plural(items.length, "upload", "uploads")} to ${remoteFolder}`);
+      addLog("info", tx("Queued {0} to {1}", plural(items.length, "upload", "uploads"), remoteFolder));
     } else if (folders.length > 0) {
-      toast({ appearance: "success", title: `Created ${plural(folders.length, "empty folder", "empty folders")}` });
+      toast({ appearance: "success", title: tx("Created {0}", plural(folders.length, "empty folder", "empty folders")) });
     }
   }
 
@@ -611,7 +637,7 @@ function Workspace() {
     if (!sid || entries.length === 0) return;
     const items: NewTransfer[] = [];
     const folders: string[] = [];
-    if (entries.some((e) => e.isDir)) setBusy((b) => ({ ...b, remote: "Listing folders…" }));
+    if (entries.some((e) => e.isDir)) setBusy((b) => ({ ...b, remote: tx("Listing folders…") }));
     try {
       for (const e of entries) {
         if (!e.isDir) {
@@ -642,14 +668,14 @@ function Workspace() {
               });
           }
         } catch (err) {
-          toast({ appearance: "error", title: `Can't read “${e.name}” on the server`, description: errorText(err) });
+          toast({ appearance: "error", title: tx("Can't read “{0}” on the server", e.name), description: errorText(err) });
         }
       }
       if (folders.length > 0) {
         try {
           await api.localMkdirs(folders);
         } catch (err) {
-          toast({ appearance: "error", title: "Can't create folders on this PC", description: errorText(err) });
+          toast({ appearance: "error", title: tx("Can't create folders on this PC"), description: errorText(err) });
           return;
         }
         if (samePath("local", localFolder, panesRef.current.local.path)) void local.refresh();
@@ -659,7 +685,7 @@ function Workspace() {
     }
     if (items.length > 0) {
       transfers.enqueue(items);
-      addLog("info", `Queued ${plural(items.length, "download", "downloads")} to ${localFolder}`);
+      addLog("info", tx("Queued {0} to {1}", plural(items.length, "download", "downloads"), localFolder));
     }
   }
 
@@ -693,7 +719,7 @@ function Workspace() {
   async function openFile(kind: PaneKind, entry: FileEntry) {
     if (kind === "local") {
       api.open(entry.path).catch((e) =>
-        toast({ appearance: "error", title: `Can't open “${entry.name}”`, description: errorText(e) }),
+        toast({ appearance: "error", title: tx("Can't open “{0}”", entry.name), description: errorText(e) }),
       );
       return;
     }
@@ -713,7 +739,7 @@ function Workspace() {
         },
       ]);
     } catch (e) {
-      toast({ appearance: "error", title: "Can't prepare a temporary copy", description: errorText(e) });
+      toast({ appearance: "error", title: tx("Can't prepare a temporary copy"), description: errorText(e) });
     }
   }
 
@@ -741,7 +767,7 @@ function Workspace() {
   async function downloadTo(entries: FileEntry[]) {
     const folder = await openDialog({
       directory: true,
-      title: "Choose where to save",
+      title: tx("Choose where to save"),
       defaultPath: local.path || undefined,
     });
     if (typeof folder === "string") void downloadEntries(entries, folder);
@@ -767,7 +793,7 @@ function Workspace() {
     const problem = validateName(kind, name);
     if (problem) return problem;
     const clean = name.trim();
-    if (nameTaken(kind, clean)) return `“${clean}” already exists here.`;
+    if (nameTaken(kind, clean)) return tx("“{0}” already exists here.", clean);
     const pane = paneOf(kind);
     const path = joinPath(kind, pane.path, clean);
     try {
@@ -775,14 +801,14 @@ function Workspace() {
         await (what === "folder" ? api.localMkdir(path) : api.localTouch(path));
       } else {
         const sid = sessionRef.current;
-        if (!sid) return "You're not connected to a server.";
+        if (!sid) return tx("You're not connected to a server.");
         await (what === "folder" ? api.mkdir(sid, path) : api.touch(sid, path));
       }
     } catch (e) {
       return errorText(e);
     }
     setCreating(null);
-    addLog("success", `Created ${what} ${path}`);
+    addLog("success", what === "folder" ? tx("Created the folder {0}", path) : tx("Created the file {0}", path));
     await pane.refresh([path]);
     focusList(kind);
     return null;
@@ -796,21 +822,21 @@ function Workspace() {
       setRenaming(null);
       return null;
     }
-    if (nameTaken(kind, clean, entry.path)) return `“${clean}” already exists here.`;
+    if (nameTaken(kind, clean, entry.path)) return tx("“{0}” already exists here.", clean);
     const pane = paneOf(kind);
     const target = joinPath(kind, parentPath(kind, entry.path) ?? pane.path, clean);
     try {
       if (kind === "local") await api.localRename(entry.path, target);
       else {
         const sid = sessionRef.current;
-        if (!sid) return "You're not connected to a server.";
+        if (!sid) return tx("You're not connected to a server.");
         await api.rename(sid, entry.path, target);
       }
     } catch (e) {
       return errorText(e);
     }
     setRenaming(null);
-    addLog("success", `Renamed ${entry.name} to ${clean}`);
+    addLog("success", tx("Renamed {0} to {1}", entry.name, clean));
     await pane.refresh([target]);
     focusList(kind);
     return null;
@@ -821,13 +847,13 @@ function Workspace() {
     const one = entries.length === 1;
     if (settings.confirmDelete) {
       const ok = await confirm({
-        title: one ? `Delete “${entries[0].name}”?` : `Delete ${entries.length.toLocaleString()} items?`,
+        title: one ? tx("Delete “{0}”?", entries[0].name) : tx("Delete {0} items?", entries.length.toLocaleString()),
         body:
           kind === "local"
             ? one
-              ? "It moves to the Recycle Bin, so you can restore it later."
-              : "They move to the Recycle Bin, so you can restore them later."
-            : `This permanently deletes ${one ? "it" : "them"} from the server, including everything inside folders. You can't undo this.`,
+              ? tx("It moves to the Recycle Bin, so you can restore it later.")
+              : tx("They move to the Recycle Bin, so you can restore them later.")
+            : tx("This permanently deletes {0} from the server, including everything inside folders. You can't undo this.", one ? "it" : "them"),
         confirmLabel: "Delete",
         appearance: "danger",
       });
@@ -837,28 +863,28 @@ function Workspace() {
     if (kind === "local") {
       try {
         await api.localTrash(entries.map((e) => e.path));
-        addLog("success", `Moved ${plural(entries.length, "item", "items")} to the Recycle Bin`);
-        toast({ appearance: "success", title: `Moved ${plural(entries.length, "item", "items")} to the Recycle Bin` });
+        addLog("success", tx("Moved {0} to the Recycle Bin", plural(entries.length, "item", "items")));
+        toast({ appearance: "success", title: tx("Moved {0} to the Recycle Bin", plural(entries.length, "item", "items")) });
       } catch (e) {
-        toast({ appearance: "error", title: "Can't delete", description: errorText(e) });
+        toast({ appearance: "error", title: tx("Can't delete"), description: errorText(e) });
       }
     } else {
       const sid = sessionRef.current;
       if (!sid) return;
       let removed = 0;
       for (const [i, e] of entries.entries()) {
-        setBusy((b) => ({ ...b, remote: `Deleting ${i + 1} of ${entries.length}…` }));
+        setBusy((b) => ({ ...b, remote: tx("Deleting {0} of {1}…", i + 1, entries.length) }));
         try {
           await api.remove(sid, e.path, e.isDir && !e.isSymlink);
           removed++;
-          addLog("success", `Deleted ${e.path}`);
+          addLog("success", tx("Deleted {0}", e.path));
         } catch (err) {
-          addLog("error", `Couldn't delete ${e.path}: ${errorText(err)}`);
-          toast({ appearance: "error", title: `Can't delete “${e.name}”`, description: errorText(err) });
+          addLog("error", tx("Couldn't delete {0}: {1}", e.path, errorText(err)));
+          toast({ appearance: "error", title: tx("Can't delete “{0}”", e.name), description: errorText(err) });
         }
       }
       setBusy((b) => ({ ...b, remote: null }));
-      if (removed > 0) toast({ appearance: "success", title: `Deleted ${plural(removed, "item", "items")} from the server` });
+      if (removed > 0) toast({ appearance: "success", title: tx("Deleted {0} from the server", plural(removed, "item", "items")) });
     }
     await pane.refresh();
     focusList(kind);
@@ -875,13 +901,13 @@ function Workspace() {
         else if (sid) await api.rename(sid, e.path, target);
         moved++;
       } catch (err) {
-        toast({ appearance: "error", title: `Can't move “${e.name}”`, description: errorText(err) });
+        toast({ appearance: "error", title: tx("Can't move “{0}”", e.name), description: errorText(err) });
       }
     }
     if (moved > 0) {
       const name = basename(kind, folder);
-      addLog("success", `Moved ${plural(moved, "item", "items")} to ${folder}`);
-      toast({ appearance: "success", title: `Moved ${plural(moved, "item", "items")} to “${name}”` });
+      addLog("success", tx("Moved {0} to {1}", plural(moved, "item", "items"), folder));
+      toast({ appearance: "success", title: tx("Moved {0} to “{1}”", plural(moved, "item", "items"), name) });
     }
     await paneOf(kind).refresh();
   }
@@ -889,9 +915,9 @@ function Workspace() {
   async function copyText(text: string, what: string) {
     try {
       await navigator.clipboard.writeText(text);
-      toast({ appearance: "success", title: `Copied ${what}` });
+      toast({ appearance: "success", title: tx("Copied {0}", what) });
     } catch {
-      toast({ appearance: "error", title: "Can't copy to the clipboard" });
+      toast({ appearance: "error", title: tx("Can't copy to the clipboard") });
     }
   }
 
@@ -914,12 +940,12 @@ function Workspace() {
         await api.chmod(sid, e.path, mode);
       } catch (err) {
         failed++;
-        toast({ appearance: "error", title: `Can't change permissions of “${e.name}”`, description: errorText(err) });
+        toast({ appearance: "error", title: tx("Can't change permissions of “{0}”", e.name), description: errorText(err) });
       }
     }
     const octal = mode.toString(8).padStart(3, "0");
     if (failed < entries.length) {
-      addLog("success", `Set permissions to ${octal} on ${plural(entries.length - failed, "item", "items")}`);
+      addLog("success", tx("Set permissions to {0} on {1}", octal, plural(entries.length - failed, "item", "items")));
     }
     setPermissionTargets(null);
     await remote.refresh();
@@ -929,26 +955,26 @@ function Workspace() {
   function backgroundMenu(kind: PaneKind): MenuItem[] {
     const pane = paneOf(kind);
     return [
-      { label: "New folder", icon: FolderPlus, shortcut: `${MOD}+Shift+N`, onSelect: () => startCreate(kind, "folder") },
-      { label: "New file", icon: FilePlus, onSelect: () => startCreate(kind, "file") },
+      { label: tx("New folder"), icon: FolderPlus, shortcut: `${MOD}+Shift+N`, onSelect: () => startCreate(kind, "folder") },
+      { label: tx("New file"), icon: FilePlus, onSelect: () => startCreate(kind, "file") },
       { type: "separator" },
-      { label: "Refresh", icon: RefreshCw, shortcut: "F5", onSelect: () => void pane.refresh() },
+      { label: tx("Refresh"), icon: RefreshCw, shortcut: "F5", onSelect: () => void pane.refresh() },
       {
-        label: "Select all",
+        label: tx("Select all"),
         icon: ListChecks,
         shortcut: `${MOD}+A`,
         disabled: pane.visible.length === 0,
         onSelect: () => pane.selectPaths(pane.visible.map((e) => e.path)),
       },
       {
-        label: "Show hidden files",
+        label: tx("Show hidden files"),
         checked: settings.showHidden,
         onSelect: () => updateSettings({ ...settings, showHidden: !settings.showHidden }),
       },
       { type: "separator" },
       kind === "local"
-        ? { label: "Open in File Explorer", icon: FolderSearch, onSelect: () => void api.open(local.path) }
-        : { label: "Copy folder address", icon: Link, onSelect: () => void copyText(remoteAddress(remote.path), "the address") },
+        ? { label: tx("Open in File Explorer"), icon: FolderSearch, onSelect: () => void api.open(local.path) }
+        : { label: tx("Copy folder address"), icon: Link, onSelect: () => void copyText(remoteAddress(remote.path), tx("the address")) },
     ];
   }
 
@@ -958,38 +984,38 @@ function Workspace() {
     const connected = !!sessionRef.current;
     const items: MenuItem[] = [];
     if (!multi && entry.isDir) {
-      items.push({ label: "Open", icon: FolderOpen, shortcut: "Enter", onSelect: () => void paneOf(kind).navigate(entry.path) });
+      items.push({ label: tx("Open"), icon: FolderOpen, shortcut: "Enter", onSelect: () => void paneOf(kind).navigate(entry.path) });
     }
     if (kind === "local") {
       items.push({
-        label: multi ? `Upload ${count} items` : "Upload",
+        label: multi ? tx("Upload {0} items", count) : tx("Upload"),
         icon: Upload,
         shortcut: `${MOD}+Enter`,
         disabled: !connected,
         onSelect: () => void uploadEntries(selection, remote.path),
       });
       if (!multi && !entry.isDir) {
-        items.push({ label: "Open", icon: ExternalLink, onSelect: () => void openFile("local", entry) });
+        items.push({ label: tx("Open"), icon: ExternalLink, onSelect: () => void openFile("local", entry) });
       }
       if (!multi) {
-        items.push({ label: "Show in File Explorer", icon: FolderSearch, onSelect: () => void api.reveal(entry.path) });
+        items.push({ label: tx("Show in File Explorer"), icon: FolderSearch, onSelect: () => void api.reveal(entry.path) });
       }
     } else {
       items.push({
-        label: multi ? `Download ${count} items` : "Download",
+        label: multi ? tx("Download {0} items", count) : tx("Download"),
         icon: Download,
         shortcut: `${MOD}+Enter`,
         onSelect: () => void downloadEntries(selection, local.path),
       });
-      items.push({ label: "Download to…", icon: FolderDown, onSelect: () => void downloadTo(selection) });
+      items.push({ label: tx("Download to…"), icon: FolderDown, onSelect: () => void downloadTo(selection) });
       if (!multi && !entry.isDir) {
-        items.push({ label: "Open a copy", icon: ExternalLink, onSelect: () => void openFile("remote", entry) });
+        items.push({ label: tx("Open a copy"), icon: ExternalLink, onSelect: () => void openFile("remote", entry) });
       }
     }
     items.push({ type: "separator" });
     if (!multi) {
       items.push({
-        label: "Rename",
+        label: tx("Rename"),
         icon: Pencil,
         shortcut: "F2",
         onSelect: () => {
@@ -999,19 +1025,19 @@ function Workspace() {
       });
     }
     if (kind === "remote") {
-      items.push({ label: "Permissions…", icon: ShieldCheck, onSelect: () => setPermissionTargets(selection) });
+      items.push({ label: tx("Permissions…"), icon: ShieldCheck, onSelect: () => setPermissionTargets(selection) });
     }
     items.push({
-      label: multi ? "Copy paths" : "Copy path",
+      label: multi ? tx("Copy paths") : tx("Copy path"),
       icon: Copy,
-      onSelect: () => void copyText(selection.map((e) => e.path).join("\n"), multi ? "the paths" : "the path"),
+      onSelect: () => void copyText(selection.map((e) => e.path).join("\n"), multi ? tx("the paths") : tx("the path")),
     });
     if (kind === "remote" && !multi) {
-      items.push({ label: "Copy address", icon: Link, onSelect: () => void copyText(remoteAddress(entry.path), "the address") });
+      items.push({ label: tx("Copy address"), icon: Link, onSelect: () => void copyText(remoteAddress(entry.path), tx("the address")) });
     }
     items.push({ type: "separator" });
     items.push({
-      label: multi ? `Delete ${count} items` : "Delete",
+      label: multi ? tx("Delete {0} items", count) : "Delete",
       icon: Trash2,
       shortcut: "Delete",
       danger: true,
@@ -1034,9 +1060,9 @@ function Workspace() {
     const isCurrent = connection.status !== "idle" && connection.site.id === site.id;
     const items: MenuItem[] = [
       isCurrent && connection.status !== "connecting"
-        ? { label: "Disconnect", icon: Unplug, onSelect: () => void disconnect() }
-        : { label: "Connect", icon: Plug, onSelect: () => void connect(site) },
-      { label: "Edit", icon: Pencil, onSelect: () => openSites(site.id) },
+        ? { label: tx("Disconnect"), icon: Unplug, onSelect: () => void disconnect() }
+        : { label: tx("Connect"), icon: Plug, onSelect: () => void connect(site) },
+      { label: tx("Edit"), icon: Pencil, onSelect: () => openSites(site.id) },
       { type: "separator" },
       {
         label: "Delete",
@@ -1044,9 +1070,9 @@ function Workspace() {
         danger: true,
         onSelect: async () => {
           const ok = await confirm({
-            title: `Delete “${site.name || site.host}”?`,
-            body: "The saved site and its password are removed from this PC. Files on the server aren't affected.",
-            confirmLabel: "Delete site",
+            title: tx("Delete “{0}”?", site.name || site.host),
+            body: tx("The saved site and its password are removed from this PC. Files on the server aren't affected."),
+            confirmLabel: tx("Delete site"),
             appearance: "danger",
           });
           if (ok) deleteSite(site.id);
@@ -1062,9 +1088,9 @@ function Workspace() {
       anchor,
       align: "end",
       items: [
-        { label: "Import sites…", icon: Download, onSelect: () => setSiteTransfer("import") },
+        { label: tx("Import sites…"), icon: Download, onSelect: () => setSiteTransfer("import") },
         {
-          label: "Export sites…",
+          label: tx("Export sites…"),
           icon: Upload,
           disabled: sites.length === 0,
           onSelect: () => setSiteTransfer("export"),
@@ -1078,15 +1104,15 @@ function Workspace() {
     const sid = sessionRef.current;
     if (!sid || entries.length === 0) return;
     const hasFolders = entries.some((e) => e.isDir && !e.isSymlink);
-    if (hasFolders) setBusy((b) => ({ ...b, remote: "Listing folders…" }));
+    if (hasFolders) setBusy((b) => ({ ...b, remote: tx("Listing folders…") }));
     try {
       const res = await api.dragOut(sid, entries, window.devicePixelRatio || 1, themeRef.current === "light");
       if (res.dropped) {
-        addLog("info", `Dragged ${plural(res.files, "file", "files")} out to File Explorer`);
+        addLog("info", tx("Dragged {0} out to File Explorer", plural(res.files, "file", "files")));
         updatePrefs({ dockOpen: true, dockTab: "transfers" });
       }
     } catch (e) {
-      toast({ appearance: "error", title: "Can't drag these files out", description: errorText(e) });
+      toast({ appearance: "error", title: tx("Can't drag these files out"), description: errorText(e) });
     } finally {
       if (hasFolders) setBusy((b) => ({ ...b, remote: null }));
     }
@@ -1185,9 +1211,9 @@ function Workspace() {
   function dropHint(t: DropTarget | null): string | null {
     if (!t) return null;
     const name = t.pane === "remote" ? basenameRemote(t.folder) : basenameLocal(t.folder);
-    if (t.action === "upload") return `Upload to “${name}”`;
-    if (t.action === "download") return `Download to “${name}”`;
-    return `Move to “${name}”`;
+    if (t.action === "upload") return tx("Upload to “{0}”", name);
+    if (t.action === "download") return tx("Download to “{0}”", name);
+    return tx("Move to “{0}”", name);
   }
 
   // ----- Files dropped from File Explorer --------------------------------------------------------
@@ -1226,10 +1252,10 @@ function Workspace() {
         } else if (p.paths.length > 0) {
           toast({
             appearance: "info",
-            title: sessionRef.current ? "Drop files on the server side to upload them" : "Connect to a server to upload files",
+            title: sessionRef.current ? tx("Drop files on the server side to upload them") : tx("Connect to a server to upload files"),
             description: sessionRef.current
-              ? "The right-hand side shows the server. Files dropped there are uploaded to the open folder."
-              : "Then drop the files on the right-hand side.",
+              ? tx("The right-hand side shows the server. Files dropped there are uploaded to the open folder.")
+              : tx("Then drop the files on the right-hand side."),
           });
         }
       })
@@ -1320,12 +1346,12 @@ function Workspace() {
         if (pending === 0) return;
         event.preventDefault();
         void confirm({
-          title: "Quit and stop transfers?",
+          title: tx("Quit and stop transfers?"),
           body:
             pending === 1
-              ? "A transfer hasn't finished yet. Quitting cancels it."
-              : `${pending.toLocaleString()} transfers haven't finished yet. Quitting cancels them.`,
-          confirmLabel: "Quit",
+              ? tx("A transfer hasn't finished yet. Quitting cancels it.")
+              : tx("{0} transfers haven't finished yet. Quitting cancels them.", pending.toLocaleString()),
+          confirmLabel: tx("Quit"),
           appearance: "warning",
           urgent: true,
         }).then((ok) => {
@@ -1388,9 +1414,9 @@ function Workspace() {
     const pane = paneOf(kind);
     if (pane.filter) {
       return (
-        <EmptyState icon={SearchX} title={`Nothing matches “${pane.filter}”`}>
+        <EmptyState icon={SearchX} title={tx("Nothing matches “{0}”", pane.filter)}>
           <Button appearance="subtle" onClick={() => pane.setFilter("")}>
-            Clear filter
+            {tx("Clear filter")}
           </Button>
         </EmptyState>
       );
@@ -1399,28 +1425,28 @@ function Workspace() {
       return (
         <EmptyState
           icon={EyeOff}
-          title="Only hidden items are here"
+          title={tx("Only hidden items are here")}
           actions={
-            <Button onClick={() => updateSettings({ ...settings, showHidden: true })}>Show hidden files</Button>
+            <Button onClick={() => updateSettings({ ...settings, showHidden: true })}>{tx("Show hidden files")}</Button>
           }
         >
-          {plural(pane.hiddenCount, "hidden item", "hidden items")} in this folder.
+          {plural(pane.hiddenCount, "hidden item", "hidden items")} {tx("in this folder.")}
         </EmptyState>
       );
     }
     return (
       <EmptyState
         icon={FolderOpen}
-        title="This folder is empty"
+        title={tx("This folder is empty")}
         actions={
           <Button iconBefore={FolderPlus} onClick={() => startCreate(kind, "folder")}>
-            New folder
+            {tx("New folder")}
           </Button>
         }
       >
         {kind === "local"
-          ? "Drag files here from the server to download them."
-          : "Drag files here from this PC or from File Explorer to upload them."}
+          ? tx("Drag files here from the server to download them.")
+          : tx("Drag files here from this PC or from File Explorer to upload them.")}
       </EmptyState>
     );
   }
@@ -1442,14 +1468,20 @@ function Workspace() {
       sort: prefs.sort[kind],
       onSort: (key: SortKey) => setSort(kind, key),
       transfer: {
-        label: isUpload ? "Upload" : "Download",
+        label: isUpload ? tx("Upload") : tx("Download"),
         icon: isUpload ? Upload : Download,
         enabled: count > 0 && connected,
         tooltip: !connected
-          ? "Connect to a server first"
+          ? tx("Connect to a server first")
           : count === 0
-            ? `Select files to ${isUpload ? "upload" : "download"}`
-            : `${isUpload ? "Upload" : "Download"} ${count === 1 ? `“${selection[0].name}”` : `${count.toLocaleString()} items`} to “${otherName}”`,
+            ? isUpload ? tx("Select files to upload") : tx("Select files to download")
+            : count === 1
+              ? isUpload
+                ? tx("Upload “{0}” to “{1}”", selection[0].name, otherName)
+                : tx("Download “{0}” to “{1}”", selection[0].name, otherName)
+              : isUpload
+                ? tx("Upload {0} items to “{1}”", count.toLocaleString(), otherName)
+                : tx("Download {0} items to “{1}”", count.toLocaleString(), otherName),
         run: () => {
           if (count > 0) void transferEntries(kind, selection);
         },
@@ -1499,6 +1531,7 @@ function Workspace() {
 
   return (
     <div className={cx("app", !prefs.sidebarOpen && "no-sidebar")}>
+      <TitleBar site={connectedSite ? connectedSite.name || connectedSite.host : null} />
       <TopBar
         connection={connectionView}
         sidebarOpen={prefs.sidebarOpen}
@@ -1544,12 +1577,12 @@ function Workspace() {
             <FilePane
               ref={localHandle}
               {...paneProps("local")}
-              title="This PC"
+              title={tx("This PC")}
               icon={HardDrive}
               subtitle={
                 localDrive && localDrive.free != null
-                  ? `${formatBytes(localDrive.free)} free on ${localDrive.letter}:`
-                  : "Your files"
+                  ? tx("{0} free on {1}:", formatBytes(localDrive.free), localDrive.letter)
+                  : tx("Your files")
               }
               banner={footerBusy("local")}
             />
@@ -1557,14 +1590,14 @@ function Workspace() {
               className="pane-splitter"
               role="separator"
               aria-orientation="vertical"
-              aria-label="Resize panes"
+              aria-label={tx("Resize panes")}
               onPointerDown={startSplit}
               onDoubleClick={() => updatePrefs({ split: 0.5 })}
             />
             <FilePane
               ref={remoteHandle}
               {...paneProps("remote")}
-              title={connectedSite ? connectedSite.name || connectedSite.host : "Server"}
+              title={connectedSite ? connectedSite.name || connectedSite.host : tx("Server")}
               icon={Server}
               subtitle={
                 connectedSite ? (
@@ -1574,10 +1607,10 @@ function Workspace() {
                       {connectedSite.host}
                     </span>
                     <Lozenge>{PROTOCOLS[connectedSite.protocol].short}</Lozenge>
-                    {connection.status === "lost" && <Lozenge appearance="warning">Offline</Lozenge>}
+                    {connection.status === "lost" && <Lozenge appearance="warning">{tx("Offline")}</Lozenge>}
                   </>
                 ) : (
-                  "Not connected"
+                  tx("Not connected")
                 )
               }
               placeholder={
@@ -1601,18 +1634,18 @@ function Workspace() {
                     <div className="pane-banner">
                       <SectionMessage
                         appearance="warning"
-                        title="The connection to the server was lost"
+                        title={tx("The connection to the server was lost")}
                         actions={
                           <button
                             type="button"
                             className="link-button"
                             onClick={() => void connect(connection.site, remote.path)}
                           >
-                            Reconnect
+                            {tx("Reconnect")}
                           </button>
                         }
                       >
-                        FTP Studio reconnects automatically when you open a folder or start a transfer.
+                        {tx("Uplinq Studio reconnects automatically when you open a folder or start a transfer.")}
                       </SectionMessage>
                     </div>
                   )}
@@ -1660,14 +1693,22 @@ function Workspace() {
             setSiteTransfer(null);
             toast({
               appearance: "success",
-              title: `Imported ${plural(picked.length, "site", "sites")}`,
-              description: "They're in the sidebar, ready to connect.",
+              title: tx("Imported {0}", plural(picked.length, "site", "sites")),
+              description: tx("They're in the sidebar, ready to connect."),
             });
-            addLog("success", `Imported ${plural(picked.length, "site", "sites")}`);
+            addLog("success", tx("Imported {0}", plural(picked.length, "site", "sites")));
           }}
         />
       )}
       {siteTransfer === "export" && <ExportSitesDialog sites={sites} onClose={() => setSiteTransfer(null)} />}
+      {offeredUpdate && (
+        <UpdateDialog
+          update={offeredUpdate}
+          busyTransfers={transfers.summary.active + transfers.summary.queued}
+          onQuiet={() => updateSettings({ ...settingsForUpdate.current, updatePrompt: false })}
+          onClose={() => setOfferedUpdate(null)}
+        />
+      )}
       {settingsOpen && (
         <SettingsDialog settings={settings} onChange={updateSettings} onClose={() => setSettingsOpen(false)} />
       )}

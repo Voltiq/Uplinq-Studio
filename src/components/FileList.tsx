@@ -15,6 +15,7 @@ import { formatBytes, formatDate, formatDateLong, formatMode } from "../lib/form
 import type { FileEntry, SortKey, SortState } from "../lib/types";
 import { cx, isEditableTarget } from "../lib/utils";
 import { ProgressBar } from "./ui/Feedback";
+import { t } from "../lib/i18n";
 
 const ROW = 32;
 const HEADER = 32;
@@ -87,10 +88,10 @@ export const FileList = forwardRef<FileListHandle, Props>(function FileList(prop
   }));
 
   const columns: Column[] = [
-    { key: "name", label: "Name" },
-    { key: "size", label: "Size", align: "end" },
-    { key: "modified", label: "Modified" },
-    { key: "kind", label: pane.kind === "remote" ? "Permissions" : "Type" },
+    { key: "name", label: t("Name") },
+    { key: "size", label: t("Size"), align: "end" },
+    { key: "modified", label: t("Modified") },
+    { key: "kind", label: pane.kind === "remote" ? t("Permissions") : "Type" },
   ];
 
   // ----- Virtual scrolling -----
@@ -388,7 +389,7 @@ export const FileList = forwardRef<FileListHandle, Props>(function FileList(prop
         })}
         {pane.loading && pane.loaded && (
           <div className="file-header-progress">
-            <ProgressBar indeterminate label="Loading" />
+            <ProgressBar indeterminate label={t("Loading")} />
           </div>
         )}
       </div>
@@ -398,7 +399,7 @@ export const FileList = forwardRef<FileListHandle, Props>(function FileList(prop
       )}
 
       {showSkeleton && (
-        <div className="file-skeleton" aria-busy="true" aria-label="Loading">
+        <div className="file-skeleton" aria-busy="true" aria-label={t("Loading")}>
           {Array.from({ length: 8 }, (_, i) => (
             <div key={i} className="skeleton-row">
               <span className="skeleton-icon" />
@@ -413,7 +414,7 @@ export const FileList = forwardRef<FileListHandle, Props>(function FileList(prop
           <span className="icon-tile icon-tile-danger" aria-hidden="true">
             <CircleAlert size={16} />
           </span>
-          <h3 className="empty-state-title">Can't open this folder</h3>
+          <h3 className="empty-state-title">{t("Can't open this folder")}</h3>
           <p className="empty-state-body">{pane.error}</p>
           {errorActions && <div className="empty-state-actions">{errorActions}</div>}
         </div>
@@ -545,9 +546,9 @@ function FileRow({
         {entry.isSymlink && !renaming && (
           <span
             className="file-link"
-            data-tooltip={entry.linkTarget ? `Link to ${entry.linkTarget}` : "Link"}
+            data-tooltip={entry.linkTarget ? t("Link to {0}", entry.linkTarget) : t("Link")}
           >
-            <Link2 size={12} aria-label="Link" />
+            <Link2 size={12} aria-label={t("Link")} />
           </span>
         )}
       </div>
@@ -622,7 +623,7 @@ function InlineName({
         className={cx("inline-edit", error && "is-invalid")}
         value={value}
         spellCheck={false}
-        aria-label="Name"
+        aria-label={t("Name")}
         aria-invalid={!!error}
         onChange={(e) => {
           setValue(e.target.value);
@@ -669,7 +670,7 @@ function CreateRow({
       <div className="file-cell col-name">
         <EntryIcon name={kind === "folder" ? "" : "file"} isDir={kind === "folder"} />
         <InlineName
-          initial={kind === "folder" ? "New folder" : "New file.txt"}
+          initial={kind === "folder" ? t("New folder") : t("New file.txt")}
           selectStem={kind === "file"}
           onCommit={onCommit}
           onCancel={onCancel}

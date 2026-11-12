@@ -22,6 +22,7 @@ import type { Drive, Places, Site } from "../lib/types";
 import { cx } from "../lib/utils";
 import { IconButton } from "./ui/Button";
 import { Spinner, StatusDot } from "./ui/Feedback";
+import { t } from "../lib/i18n";
 
 const PLACE_ICONS: Record<string, LucideIcon> = {
   home: House,
@@ -73,26 +74,26 @@ export function Sidebar({
   );
 
   return (
-    <aside className="sidebar" aria-label="Sites and places">
+    <aside className="sidebar" aria-label={t("Sites and places")}>
       <section className="sidebar-section">
         <div className="sidebar-heading">
-          <h2>Sites</h2>
+          <h2>{t("Sites")}</h2>
           <span className="sidebar-heading-actions">
             <IconButton
               ref={sitesMenuRef}
               icon={Ellipsis}
-              label="Import and export sites"
+              label={t("Import and export sites")}
               spacing="compact"
               onClick={() => sitesMenuRef.current && onSitesMenu(sitesMenuRef.current)}
             />
-            <IconButton icon={Plus} label="Add a site" spacing="compact" onClick={onNewSite} />
+            <IconButton icon={Plus} label={t("Add a site")} spacing="compact" onClick={onNewSite} />
           </span>
         </div>
         {sorted.length === 0 ? (
           <div className="sidebar-empty">
-            <p>Save the servers you use often to connect with one click.</p>
+            <p>{t("Save the servers you use often to connect with one click.")}</p>
             <button type="button" className="link-button" onClick={onNewSite}>
-              Add a site
+              {t("Add a site")}
             </button>
           </div>
         ) : (
@@ -114,7 +115,7 @@ export function Sidebar({
 
       <section className="sidebar-section">
         <div className="sidebar-heading">
-          <h2>This PC</h2>
+          <h2>{t("This PC")}</h2>
         </div>
         <ul className="sidebar-list">
           {places?.places.map((p) => {
@@ -161,7 +162,7 @@ export function Sidebar({
                           <span style={{ transform: `scaleX(${used})` }} />
                         </span>
                         <span className="sidebar-item-meta">
-                          {formatBytes(d.free)} free of {formatBytes(d.total)}
+                          {t("{0} free of {1}", formatBytes(d.free), formatBytes(d.total))}
                         </span>
                       </>
                     )}
@@ -204,7 +205,7 @@ function SiteItem({
           onMenu({ x: e.clientX, y: e.clientY });
         }}
         aria-current={connected ? "true" : undefined}
-        data-tooltip={lost ? "Connection lost" : connected ? "Connected" : `Connect to ${site.host}`}
+        data-tooltip={lost ? t("Connection lost") : connected ? t("Connected") : t("Connect to {0}", site.host)}
       >
         <span className="site-icon" aria-hidden="true">
           {connecting ? <Spinner size={16} /> : <Server size={16} />}
@@ -214,7 +215,7 @@ function SiteItem({
           <span className="sidebar-item-label">
             {site.name || site.host}
             {PROTOCOLS[site.protocol].encrypted && (
-              <Lock size={12} className="site-lock" aria-label={`Encrypted (${PROTOCOLS[site.protocol].short})`} />
+              <Lock size={12} className="site-lock" aria-label={t("Encrypted ({0})", PROTOCOLS[site.protocol].short)} />
             )}
           </span>
           <span className="sidebar-item-meta">
@@ -226,7 +227,7 @@ function SiteItem({
         ref={moreRef}
         className="site-more"
         icon={Ellipsis}
-        label={`Options for ${site.name || site.host}`}
+        label={t("Options for {0}", site.name || site.host)}
         spacing="compact"
         onClick={() => moreRef.current && onMenu(moreRef.current)}
       />

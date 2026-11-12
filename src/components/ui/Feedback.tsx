@@ -7,6 +7,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cx } from "../../lib/utils";
+import { currentLanguage } from "../../lib/i18n";
 
 export function Spinner({ size = 16, label }: { size?: number; label?: string }) {
   return (
@@ -88,13 +89,30 @@ export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="kbd">{children}</kbd>;
 }
 
+/** Key names as printed on German keyboards. Kept apart from the main table: "Delete" the key is "Entf", "Delete" the action is "Löschen". */
+const GERMAN_KEYS: Record<string, string> = {
+  Ctrl: "Strg",
+  Shift: "Umschalt",
+  Delete: "Entf",
+  Backspace: "Rücktaste",
+  Enter: "Eingabe",
+  Space: "Leertaste",
+  Arrow: "Pfeiltaste",
+  Left: "Links",
+  Right: "Rechts",
+  Up: "Oben",
+  Down: "Unten",
+  Esc: "Esc",
+};
+
 /** Renders "Ctrl+Shift+N" as separate key caps. */
 export function Shortcut({ keys }: { keys: string }) {
   const parts = keys === "+" ? ["+"] : keys.split("+");
+  const german = currentLanguage() === "de";
   return (
     <span className="shortcut">
       {parts.map((k, i) => (
-        <Kbd key={i}>{k}</Kbd>
+        <Kbd key={i}>{german ? (GERMAN_KEYS[k] ?? k) : k}</Kbd>
       ))}
     </span>
   );

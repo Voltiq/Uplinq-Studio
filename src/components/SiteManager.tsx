@@ -30,6 +30,7 @@ import { Button } from "./ui/Button";
 import { Checkbox, Segmented, Select, TextField, Toggle } from "./ui/Field";
 import { SectionMessage } from "./ui/Feedback";
 import { Modal } from "./ui/Modal";
+import { t } from "../lib/i18n";
 
 interface Props {
   sites: Site[];
@@ -47,15 +48,15 @@ type Errors = Partial<Record<"host" | "port" | "username", string>>;
 function validate(site: Site): Errors {
   const errors: Errors = {};
   const host = site.host.trim();
-  if (!host) errors.host = "Enter the server's host name or IP address.";
-  else if (/\s/.test(host)) errors.host = "Host names can't contain spaces.";
+  if (!host) errors.host = t("Enter the server's host name or IP address.");
+  else if (/\s/.test(host)) errors.host = t("Host names can't contain spaces.");
   else if (/[@/]/.test(host))
-    errors.host = "Enter only the host name here, like ftp.example.com. Put the username in the Login section.";
+    errors.host = t("Enter only the host name here, like ftp.example.com. Put the username in the Login section.");
   if (!Number.isInteger(site.port) || site.port < 1 || site.port > 65535) {
-    errors.port = "Use a port between 1 and 65535.";
+    errors.port = t("Use a port between 1 and 65535.");
   }
   if (site.protocol === "sftp" && !site.username.trim()) {
-    errors.username = "SFTP needs a username.";
+    errors.username = t("SFTP needs a username.");
   }
   return errors;
 }
@@ -209,9 +210,9 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
   async function remove() {
     if (!saved) return;
     const ok = await confirm({
-      title: `Delete “${saved.name || saved.host}”?`,
-      body: "The saved site and its password are removed from this PC. Files on the server aren't affected.",
-      confirmLabel: "Delete site",
+      title: t("Delete “{0}”?", saved.name || saved.host),
+      body: t("The saved site and its password are removed from this PC. Files on the server aren't affected."),
+      confirmLabel: t("Delete site"),
       appearance: "danger",
     });
     if (!ok) return;
@@ -232,21 +233,21 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
     onSave(copy);
     setDrafts((d) => ({ ...d, [copy.id]: copy }));
     select(copy.id);
-    toast({ appearance: "success", title: "Site duplicated" });
+    toast({ appearance: "success", title: t("Site duplicated") });
   }
 
   async function browseLocal() {
     const picked = await openDialog({
       directory: true,
       defaultPath: draft.localPath || undefined,
-      title: "Choose the local folder to open",
+      title: t("Choose the local folder to open"),
     });
     if (typeof picked === "string") update({ localPath: picked });
   }
 
   async function browseKey() {
     const picked = await openDialog({
-      title: "Choose your private key",
+      title: t("Choose your private key"),
       defaultPath: draft.keyFile || undefined,
       filters: [
         { name: "Private keys", extensions: ["ppk", "pem", "key", "openssh"] },
@@ -270,8 +271,8 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
     setHostKeyVersion((v) => v + 1);
     toast({
       appearance: "success",
-      title: "Server identity forgotten",
-      description: "You'll be asked to check it again next time you connect.",
+      title: t("Server identity forgotten"),
+      description: t("You'll be asked to check it again next time you connect."),
     });
   }
 
@@ -280,7 +281,7 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
 
   return (
     <Modal
-      title="Sites"
+      title={t("Sites")}
       width="large"
       onClose={onClose}
       closeOnBlanket={false}
@@ -291,28 +292,28 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
             {!isNew && (
               <>
                 <Button appearance="subtle" iconBefore={Trash2} onClick={remove}>
-                  Delete
+                  {t("Delete")}
                 </Button>
                 <Button appearance="subtle" iconBefore={Copy} onClick={duplicate}>
-                  Duplicate
+                  {t("Duplicate")}
                 </Button>
               </>
             )}
-            {isNew && <Checkbox checked={saveNew} onChange={setSaveNew} label="Save this site" />}
+            {isNew && <Checkbox checked={saveNew} onChange={setSaveNew} label={t("Save this site")} />}
           </div>
           <Button appearance="subtle" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button
             onClick={() => {
-              if (save()) toast({ appearance: "success", title: "Site saved" });
+              if (save()) toast({ appearance: "success", title: t("Site saved") });
             }}
             disabled={!dirty && !isNew}
           >
-            Save
+            {t("Save")}
           </Button>
           <Button appearance="primary" iconBefore={Plug} loading={connecting} onClick={connect}>
-            Connect
+            {t("Connect")}
           </Button>
         </>
       }
@@ -320,19 +321,19 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
       <div className="site-manager-layout">
         <div className="site-manager-list">
           <Button iconBefore={Plus} onClick={addSite} className="site-manager-add">
-            New site
+            {t("New site")}
           </Button>
           {sites.length > 4 && (
             <TextField
               compact
               icon={Search}
-              placeholder="Search sites"
-              aria-label="Search sites"
+              placeholder={t("Search sites")}
+              aria-label={t("Search sites")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           )}
-          <ul className="site-manager-items" aria-label="Saved sites">
+          <ul className="site-manager-items" aria-label={t("Saved sites")}>
             {listed.map((s) => {
               const unsaved = !savedIds.has(s.id);
               return (
@@ -346,22 +347,22 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
                     <Server size={16} aria-hidden="true" />
                     <span className="site-manager-item-text">
                       <span className="site-manager-item-name">
-                        {unsaved ? s.name || s.host || "New site" : s.name || s.host}
-                        {PROTOCOLS[s.protocol].encrypted && <Lock size={12} aria-label="Encrypted" />}
+                        {unsaved ? s.name || s.host || t("New site") : s.name || s.host}
+                        {PROTOCOLS[s.protocol].encrypted && <Lock size={12} aria-label={t("Encrypted")} />}
                       </span>
                       <span className="site-manager-item-meta">
-                        {unsaved && !s.host ? "Not saved yet" : `${PROTOCOLS[s.protocol].short} · ${s.host || "no host yet"}`}
+                        {unsaved && !s.host ? t("Not saved yet") : `${PROTOCOLS[s.protocol].short} · ${s.host || t("no host yet")}`}
                       </span>
                     </span>
                   </button>
                 </li>
               );
             })}
-            {listed.length === 0 && <li className="site-manager-none">No sites match your search.</li>}
+            {listed.length === 0 && <li className="site-manager-none">{t("No sites match your search.")}</li>}
           </ul>
           <div className="site-manager-io">
-            <Button appearance="subtle" spacing="compact" iconBefore={Download} onClick={onImport} tooltip="Import sites from FileZilla or an XML file">
-              Import
+            <Button appearance="subtle" spacing="compact" iconBefore={Download} onClick={onImport} tooltip={t("Import sites from FileZilla or an XML file")}>
+              {t("Import")}
             </Button>
             <Button
               appearance="subtle"
@@ -369,9 +370,9 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
               iconBefore={Upload}
               onClick={onExport}
               disabled={sites.length === 0}
-              tooltip="Export your sites as FileZilla XML"
+              tooltip={t("Export your sites as FileZilla XML")}
             >
-              Export
+              {t("Export")}
             </Button>
           </div>
         </div>
@@ -385,22 +386,22 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
         >
           <button type="submit" hidden aria-hidden="true" tabIndex={-1} />
           {connectError && (
-            <SectionMessage appearance="danger" title="Couldn't connect">
+            <SectionMessage appearance="danger" title={t("Couldn't connect")}>
               {connectError}
             </SectionMessage>
           )}
 
           <section className="form-section">
-            <h3 className="form-section-title">Server</h3>
+            <h3 className="form-section-title">{t("Server")}</h3>
             <TextField
-              label="Name"
+              label={t("Name")}
               value={draft.name}
-              placeholder={draft.host || "My website"}
+              placeholder={draft.host || t("My website")}
               onChange={(e) => update({ name: e.target.value })}
-              helper="Shown in the sidebar. Leave empty to use the host name."
+              helper={t("Shown in the sidebar. Leave empty to use the host name.")}
             />
             <Select<Protocol>
-              label="Protocol"
+              label={t("Protocol")}
               value={draft.protocol}
               onChange={setProtocol}
               options={PROTOCOL_ORDER.map((p) => ({ value: p, label: PROTOCOLS[p].label }))}
@@ -408,14 +409,14 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
             />
             <div className="form-row">
               <TextField
-                label="Host"
+                label={t("Host")}
                 icon={Globe}
                 containerClassName="grow"
                 value={draft.host}
                 placeholder={isSftp ? "server.example.com" : "ftp.example.com"}
                 data-autofocus={isNew ? "" : undefined}
                 error={shownErrors.host}
-                helper="Tip: paste a full address such as sftp://user@example.com/folder."
+                helper={t("Tip: paste a full address such as sftp://user@example.com/folder.")}
                 onChange={(e) => update({ host: e.target.value })}
                 onPaste={(e) => {
                   const parsed = parseAddress(e.clipboardData.getData("text"));
@@ -430,7 +431,7 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
                 }}
               />
               <TextField
-                label="Port"
+                label={t("Port")}
                 containerClassName="port-field"
                 inputMode="numeric"
                 value={Number.isNaN(draft.port) ? "" : String(draft.port)}
@@ -444,28 +445,28 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
           </section>
 
           <section className="form-section">
-            <h3 className="form-section-title">Login</h3>
+            <h3 className="form-section-title">{t("Login")}</h3>
             {!isSftp && (
               <Toggle
-                label="Log in anonymously"
-                description="For public servers that don't need an account."
+                label={t("Log in anonymously")}
+                description={t("For public servers that don't need an account.")}
                 checked={draft.anonymous}
                 onChange={(anonymous) => update({ anonymous })}
               />
             )}
             {isSftp && (
               <div className="field">
-                <span className="field-label">Sign in with</span>
+                <span className="field-label">{t("Sign in with")}</span>
                 <Segmented<"password" | "key">
-                  label="Sign in with"
+                  label={t("Sign in with")}
                   value={usesKey ? "key" : "password"}
                   onChange={(mode) => {
                     if (mode === "password") update({ keyFile: "" });
                     else void browseKey();
                   }}
                   options={[
-                    { value: "password", label: "Password", icon: KeyRound },
-                    { value: "key", label: "Key file", icon: FileKey },
+                    { value: "password", label: t("Password"), icon: KeyRound },
+                    { value: "key", label: t("Key file"), icon: FileKey },
                   ]}
                 />
               </div>
@@ -476,22 +477,22 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
                   <div className="field">
                     <div className="form-row align-end">
                       <TextField
-                        label="Private key"
+                        label={t("Private key")}
                         icon={FileKey}
                         containerClassName="grow"
                         value={draft.keyFile}
                         onChange={(e) => update({ keyFile: e.target.value })}
                       />
                       <Button iconBefore={FolderOpen} onClick={() => void browseKey()}>
-                        Browse
+                        {t("Browse")}
                       </Button>
                     </div>
-                    <p className="field-message">OpenSSH, PEM and PuTTY (.ppk) keys work.</p>
+                    <p className="field-message">{t("OpenSSH, PEM and PuTTY (.ppk) keys work.")}</p>
                   </div>
                 )}
                 <div className="form-row">
                   <TextField
-                    label="Username"
+                    label={t("Username")}
                     icon={User}
                     containerClassName="grow"
                     value={draft.username}
@@ -499,19 +500,19 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
                     onChange={(e) => update({ username: e.target.value })}
                   />
                   <TextField
-                    label={usesKey ? "Key passphrase" : "Password"}
+                    label={usesKey ? t("Key passphrase") : t("Password")}
                     icon={KeyRound}
                     containerClassName="grow"
                     type={showPassword ? "text" : "password"}
                     value={draft.password}
-                    placeholder={usesKey ? "Only if the key has one" : undefined}
+                    placeholder={usesKey ? t("Only if the key has one") : undefined}
                     onChange={(e) => update({ password: e.target.value })}
                     after={
                       <button
                         type="button"
                         className="textfield-action"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                        data-tooltip={showPassword ? "Hide password" : "Show password"}
+                        aria-label={showPassword ? t("Hide password") : t("Show password")}
+                        data-tooltip={showPassword ? t("Hide password") : t("Show password")}
                         onClick={() => setShowPassword((v) => !v)}
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -522,7 +523,7 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
                 <Checkbox
                   checked={draft.rememberPassword}
                   onChange={(rememberPassword) => update({ rememberPassword })}
-                  label={usesKey ? "Remember the passphrase on this PC" : "Remember the password on this PC"}
+                  label={usesKey ? t("Remember the passphrase on this PC") : t("Remember the password on this PC")}
                 />
               </>
             )}
@@ -536,58 +537,58 @@ export function SiteManager({ sites, initialSiteId, onClose, onSave, onDelete, o
               onClick={() => setAdvancedOpen((v) => !v)}
             >
               {advancedOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-              <span className="form-section-title">Advanced</span>
+              <span className="form-section-title">{t("Advanced")}</span>
               {!advancedOpen && (draft.remotePath || draft.localPath || draft.trustInvalidCerts) && (
-                <span className="disclosure-hint">Customized</span>
+                <span className="disclosure-hint">{t("Customized")}</span>
               )}
             </button>
             {advancedOpen && (
               <div className="disclosure-body">
                 <TextField
-                  label="Open this server folder"
+                  label={t("Open this server folder")}
                   mono
                   value={draft.remotePath}
                   placeholder="/public_html"
-                  helper="Leave empty to start in your home folder on the server."
+                  helper={t("Leave empty to start in your home folder on the server.")}
                   onChange={(e) => update({ remotePath: e.target.value })}
                 />
                 <div className="form-row align-end">
                   <TextField
-                    label="Open this folder on this PC"
+                    label={t("Open this folder on this PC")}
                     containerClassName="grow"
                     value={draft.localPath}
-                    placeholder="Keep the current folder"
+                    placeholder={t("Keep the current folder")}
                     onChange={(e) => update({ localPath: e.target.value })}
                   />
                   <Button iconBefore={FolderOpen} onClick={browseLocal}>
-                    Browse
+                    {t("Browse")}
                   </Button>
                 </div>
                 {draft.protocol !== "ftp" && !isSftp && (
                   <Toggle
-                    label="Trust any certificate"
-                    description="Only for servers with a self-signed certificate that you trust. This turns off protection against impersonation."
+                    label={t("Trust any certificate")}
+                    description={t("Only for servers with a self-signed certificate that you trust. This turns off protection against impersonation.")}
                     checked={draft.trustInvalidCerts}
                     onChange={(trustInvalidCerts) => update({ trustInvalidCerts })}
                   />
                 )}
                 {isSftp && (
                   <div className="field">
-                    <span className="field-label">Server identity</span>
+                    <span className="field-label">{t("Server identity")}</span>
                     {knownHost ? (
                       <div className="fingerprint-row">
                         <Fingerprint size={16} aria-hidden="true" />
                         <span className="fingerprint-text">
                           <span className="fingerprint-value">{knownHost.fingerprint}</span>
-                          <span className="field-message">{knownHost.keyType} key, trusted since {new Date(knownHost.added).toLocaleDateString()}</span>
+                          <span className="field-message">{t("{0} key, trusted since {1}", knownHost.keyType, new Date(knownHost.added).toLocaleDateString())}</span>
                         </span>
                         <Button appearance="subtle" spacing="compact" onClick={forgetHostKey}>
-                          Forget
+                          {t("Forget")}
                         </Button>
                       </div>
                     ) : (
                       <p className="field-message">
-                        Not checked yet. The first time you connect, FTP Studio shows the server's fingerprint so you can confirm it.
+                        {t("Not checked yet. The first time you connect, Uplinq Studio shows the server's fingerprint so you can confirm it.")}
                       </p>
                     )}
                   </div>

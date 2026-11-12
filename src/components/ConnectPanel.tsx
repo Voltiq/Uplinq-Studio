@@ -3,6 +3,7 @@ import { PROTOCOLS } from "../lib/protocols";
 import type { Site } from "../lib/types";
 import { Button, IconButton } from "./ui/Button";
 import { SectionMessage, Spinner } from "./ui/Feedback";
+import { t } from "../lib/i18n";
 
 interface Props {
   connecting: Site | null;
@@ -32,15 +33,14 @@ export function ConnectPanel({
     return (
       <div className="connect-panel">
         <div className="connect-hero">
-          <Spinner size={24} label="Connecting" />
-          <h3 className="empty-state-title">Connecting to {connecting.name || connecting.host}</h3>
+          <Spinner size={24} label={t("Connecting")} />
+          <h3 className="empty-state-title">{t("Connecting to {0}", connecting.name || connecting.host)}</h3>
           <p className="empty-state-body">
-            Reaching {connecting.host} on port {connecting.port} using {PROTOCOLS[connecting.protocol].short}. This can
-            take up to 15 seconds.
+            {t("Reaching {0} on port {1} using {2}. This can take up to 15 seconds.", connecting.host, connecting.port, PROTOCOLS[connecting.protocol].short)}
           </p>
           <div className="empty-state-actions">
             <Button appearance="subtle" onClick={onCancel}>
-              Cancel
+              {t("Cancel")}
             </Button>
           </div>
         </div>
@@ -58,21 +58,21 @@ export function ConnectPanel({
         <span className="icon-tile icon-tile-large" aria-hidden="true">
           <Server size={16} />
         </span>
-        <h3 className="empty-state-title">Connect to a server</h3>
+        <h3 className="empty-state-title">{t("Connect to a server")}</h3>
         <p className="empty-state-body">
           {sites.length > 0
-            ? "Pick one of your sites, or add a new one. Its files will appear here."
+            ? t("Pick one of your sites, or add a new one. Its files will appear here.")
             : fileZillaFound
-              ? "Add the address and login of your server, or bring over the sites you saved in FileZilla."
-              : "Add the address and login of your SFTP or FTP server. Its files will appear here."}
+              ? t("Add the address and login of your server, or bring over the sites you saved in FileZilla.")
+              : t("Add the address and login of your SFTP or FTP server. Its files will appear here.")}
         </p>
         <div className="empty-state-actions">
           <Button appearance={sites.length > 0 ? "default" : "primary"} iconBefore={Plus} onClick={onNewSite}>
-            New connection
+            {t("New connection")}
           </Button>
           {sites.length === 0 && fileZillaFound && (
             <Button iconBefore={Download} onClick={onImport}>
-              Import from FileZilla
+              {t("Import from FileZilla")}
             </Button>
           )}
         </div>
@@ -81,14 +81,14 @@ export function ConnectPanel({
       {lastError && (
         <SectionMessage
           appearance="danger"
-          title={`Couldn't connect to ${lastError.site.name || lastError.site.host}`}
+          title={t("Couldn't connect to {0}", lastError.site.name || lastError.site.host)}
           actions={
             <>
               <button type="button" className="link-button" onClick={() => onConnect(lastError.site)}>
-                <RotateCw size={12} aria-hidden="true" /> Try again
+                <RotateCw size={12} aria-hidden="true" /> {t("Try again")}
               </button>
               <button type="button" className="link-button" onClick={() => onEditSite(lastError.site)}>
-                <Pencil size={12} aria-hidden="true" /> Edit site
+                <Pencil size={12} aria-hidden="true" /> {t("Edit site")}
               </button>
             </>
           }
@@ -99,7 +99,7 @@ export function ConnectPanel({
 
       {recent.length > 0 && (
         <div className="connect-sites">
-          <h4 className="connect-sites-title">Your sites</h4>
+          <h4 className="connect-sites-title">{t("Your sites")}</h4>
           <ul>
             {recent.map((s) => {
               const user = s.anonymous || !s.username ? "anonymous" : s.username;
@@ -111,7 +111,7 @@ export function ConnectPanel({
                     <span className="connect-site-text">
                       <span className="connect-site-name">
                         {s.name || s.host}
-                        {info.encrypted && <Lock size={12} aria-label="Encrypted" />}
+                        {info.encrypted && <Lock size={12} aria-label={t("Encrypted")} />}
                       </span>
                       <span className="connect-site-meta">
                         {info.short} · {user}@{s.host}
@@ -120,10 +120,10 @@ export function ConnectPanel({
                     </span>
                     <span className="connect-site-cta">
                       <Plug size={16} aria-hidden="true" />
-                      Connect
+                      {t("Connect")}
                     </span>
                   </button>
-                  <IconButton icon={Pencil} label={`Edit ${s.name || s.host}`} onClick={() => onEditSite(s)} />
+                  <IconButton icon={Pencil} label={t("Edit {0}", s.name || s.host)} onClick={() => onEditSite(s)} />
                 </li>
               );
             })}

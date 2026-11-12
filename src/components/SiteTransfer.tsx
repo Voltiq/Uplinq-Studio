@@ -12,6 +12,7 @@ import { Button } from "./ui/Button";
 import { Checkbox } from "./ui/Field";
 import { Lozenge, SectionMessage, Spinner } from "./ui/Feedback";
 import { Modal } from "./ui/Modal";
+import { t } from "../lib/i18n";
 
 function siteMeta(site: Site) {
   const info = PROTOCOLS[site.protocol];
@@ -93,7 +94,7 @@ export function ImportSitesDialog({
 
   async function chooseFile(closeIfCancelled = false) {
     const picked = await openDialog({
-      title: "Choose a site list to import",
+      title: t("Choose a site list to import"),
       filters: [
         { name: "Site lists (XML)", extensions: ["xml"] },
         { name: "All files", extensions: ["*"] },
@@ -155,7 +156,7 @@ export function ImportSitesDialog({
 
   return (
     <Modal
-      title="Import sites"
+      title={t("Import sites")}
       width="medium"
       onClose={onClose}
       className="site-transfer"
@@ -163,27 +164,27 @@ export function ImportSitesDialog({
         <>
           <div className="modal-footer-start">
             <Button appearance="subtle" iconBefore={FolderOpen} onClick={() => void chooseFile()}>
-              Choose another file
+              {t("Choose another file")}
             </Button>
           </div>
           <Button appearance="subtle" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button appearance="primary" onClick={submit} disabled={chosen.length === 0}>
-            {chosen.length > 0 ? `Import ${plural(chosen.length, "site", "sites")}` : "Import"}
+            {chosen.length > 0 ? t("Import {0}", plural(chosen.length, "site", "sites")) : t("Import")}
           </Button>
         </>
       }
     >
       {loading ? (
         <div className="site-transfer-loading">
-          <Spinner size={24} label="Reading the site list" />
+          <Spinner size={24} label={t("Reading the site list")} />
         </div>
       ) : (
         <div className="site-transfer-body">
           {source && (
             <p className="dialog-text">
-              {source.fromFileZilla ? "Sites saved in FileZilla on this PC" : "Sites in "}
+              {source.fromFileZilla ? t("Sites saved in FileZilla on this PC") : t("Sites in ")}
               {!source.fromFileZilla && (
                 <strong className="path-text" data-tooltip={source.path}>
                   {"“"}
@@ -199,19 +200,19 @@ export function ImportSitesDialog({
                   </span>
                 </>
               )}
-              . Sites you already have are left unticked.
+              {t(". Sites you already have are left unticked.")}
             </p>
           )}
 
           {error && (
-            <SectionMessage appearance="danger" title="Can't read this file">
+            <SectionMessage appearance="danger" title={t("Can't read this file")}>
               {error}
             </SectionMessage>
           )}
 
           {candidates && candidates.length === 0 && (
-            <SectionMessage appearance="information" title="No sites in this file">
-              In FileZilla, open the Site Manager and use File, then Export, to save your sites.
+            <SectionMessage appearance="information" title={t("No sites in this file")}>
+              {t("In FileZilla, open the Site Manager and use File, then Export, to save your sites.")}
             </SectionMessage>
           )}
 
@@ -223,10 +224,10 @@ export function ImportSitesDialog({
                   indeterminate={chosen.length > 0 && !allChosen}
                   disabled={importable.length === 0}
                   onChange={(on) => setSelected(new Set(on ? importable.map(([, i]) => i) : []))}
-                  label={`Select all (${importable.length.toLocaleString()})`}
+                  label={t("Select all ({0})", importable.length.toLocaleString())}
                 />
               </div>
-              <div className="site-transfer-list" role="group" aria-label="Sites to import">
+              <div className="site-transfer-list" role="group" aria-label={t("Sites to import")}>
                 {groups.map(([folder, items]) => (
                   <div key={folder} className="site-transfer-group">
                     {folder && (
@@ -244,7 +245,7 @@ export function ImportSitesDialog({
                             <span className="site-transfer-name">
                               {c.site.name || c.site.host}
                               {!disabled && PROTOCOLS[c.site.protocol].encrypted && (
-                                <Lock size={12} aria-label="Encrypted" />
+                                <Lock size={12} aria-label={t("Encrypted")} />
                               )}
                             </span>
                             <span className="site-transfer-meta">
@@ -253,20 +254,19 @@ export function ImportSitesDialog({
                             {c.passwordMissing && (
                               <span className="site-transfer-note">
                                 <KeyRound size={12} aria-hidden="true" />
-                                The password is protected by FileZilla's master password. You'll be asked for it when
-                                you connect.
+                                {t("The password is protected by FileZilla's master password. You'll be asked for it when you connect.")}
                               </span>
                             )}
                             {c.site.keyFile && (
                               <span className="site-transfer-note" data-tooltip={c.site.keyFile}>
                                 <FileKey size={12} aria-hidden="true" />
-                                Signs in with the key file {fileName(c.site.keyFile)}
+                                {t("Signs in with the key file")}{" "}{fileName(c.site.keyFile)}
                               </span>
                             )}
                             {disabled && c.note && <span className="site-transfer-note">{c.note}</span>}
                           </span>
-                          {c.status === "duplicate" && <Lozenge>Already added</Lozenge>}
-                          {disabled && <Lozenge appearance="warning">Not supported</Lozenge>}
+                          {c.status === "duplicate" && <Lozenge>{t("Already added")}</Lozenge>}
+                          {disabled && <Lozenge appearance="warning">{t("Not supported")}</Lozenge>}
                         </SelectRow>
                       );
                     })}
@@ -275,7 +275,9 @@ export function ImportSitesDialog({
               </div>
               {missingPasswords > 0 && (
                 <p className="field-message">
-                  {plural(missingPasswords, "site needs its", "sites need their")} password entered when connecting.
+                  {missingPasswords === 1
+                    ? t("1 site needs its password entered when connecting.")
+                    : t("{0} sites need their password entered when connecting.", missingPasswords.toLocaleString())}
                 </p>
               )}
             </>
@@ -305,8 +307,8 @@ export function ExportSitesDialog({ sites, onClose }: { sites: Site[]; onClose: 
   async function submit() {
     if (chosen.length === 0) return;
     const path = await saveDialog({
-      title: "Export sites",
-      defaultPath: chosen.length === 1 ? `${(chosen[0].name || chosen[0].host).replace(/[\\/:*?"<>|]/g, "_")}.xml` : "FTP Studio sites.xml",
+      title: t("Export sites"),
+      defaultPath: chosen.length === 1 ? `${(chosen[0].name || chosen[0].host).replace(/[\\/:*?"<>|]/g, "_")}.xml` : t("Uplinq Studio sites.xml"),
       filters: [{ name: "FileZilla site list (XML)", extensions: ["xml"] }],
     });
     if (!path) return;
@@ -315,13 +317,13 @@ export function ExportSitesDialog({ sites, onClose }: { sites: Site[]; onClose: 
       await api.writeTextFile(path, buildFileZilla(chosen, includePasswords));
       toast({
         appearance: "success",
-        title: `Exported ${plural(chosen.length, "site", "sites")}`,
-        description: "FileZilla and FTP Studio can both import this file.",
-        actions: [{ label: "Show in File Explorer", onClick: () => void api.reveal(path) }],
+        title: t("Exported {0}", plural(chosen.length, "site", "sites")),
+        description: t("FileZilla and Uplinq Studio can both import this file."),
+        actions: [{ label: t("Show in File Explorer"), onClick: () => void api.reveal(path) }],
       });
       onClose();
     } catch (e) {
-      toast({ appearance: "error", title: "Can't save the file", description: errorText(e) });
+      toast({ appearance: "error", title: t("Can't save the file"), description: errorText(e) });
     } finally {
       setSaving(false);
     }
@@ -329,34 +331,34 @@ export function ExportSitesDialog({ sites, onClose }: { sites: Site[]; onClose: 
 
   return (
     <Modal
-      title="Export sites"
+      title={t("Export sites")}
       width="medium"
       onClose={onClose}
       className="site-transfer"
       footer={
         <>
           <Button appearance="subtle" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button appearance="primary" onClick={() => void submit()} disabled={chosen.length === 0} loading={saving}>
-            {chosen.length > 0 ? `Export ${plural(chosen.length, "site", "sites")}` : "Export"}
+            {chosen.length > 0 ? t("Export {0}", plural(chosen.length, "site", "sites")) : t("Export")}
           </Button>
         </>
       }
     >
       <div className="site-transfer-body">
         <p className="dialog-text">
-          Saves your sites in FileZilla's format, so you can move them to another PC or open them in FileZilla.
+          {t("Saves your sites in FileZilla's format, so you can move them to another PC or open them in FileZilla.")}
         </p>
         <div className="site-transfer-toolbar">
           <Checkbox
             checked={chosen.length === sorted.length}
             indeterminate={chosen.length > 0 && chosen.length < sorted.length}
             onChange={(on) => setSelected(new Set(on ? sorted.map((s) => s.id) : []))}
-            label={`Select all (${sorted.length.toLocaleString()})`}
+            label={t("Select all ({0})", sorted.length.toLocaleString())}
           />
         </div>
-        <div className="site-transfer-list" role="group" aria-label="Sites to export">
+        <div className="site-transfer-list" role="group" aria-label={t("Sites to export")}>
           {sorted.map((s) => (
             <SelectRow
               key={s.id}
@@ -374,7 +376,7 @@ export function ExportSitesDialog({ sites, onClose }: { sites: Site[]; onClose: 
               <span className="site-transfer-text">
                 <span className="site-transfer-name">
                   {s.name || s.host}
-                  {PROTOCOLS[s.protocol].encrypted && <Lock size={12} aria-label="Encrypted" />}
+                  {PROTOCOLS[s.protocol].encrypted && <Lock size={12} aria-label={t("Encrypted")} />}
                 </span>
                 <span className="site-transfer-meta">{siteMeta(s)}</span>
               </span>
@@ -387,14 +389,13 @@ export function ExportSitesDialog({ sites, onClose }: { sites: Site[]; onClose: 
           disabled={withPasswords === 0}
           label={
             withPasswords === 0
-              ? "Include saved passwords (none of these sites has one)"
-              : `Include saved passwords (${withPasswords.toLocaleString()} of ${plural(chosen.length, "site", "sites")})`
+              ? t("Include saved passwords (none of these sites has one)")
+              : t("Include saved passwords ({0} of {1})", withPasswords.toLocaleString(), plural(chosen.length, "site", "sites"))
           }
         />
         {includePasswords && withPasswords > 0 && (
-          <SectionMessage appearance="warning" title="Keep this file private">
-            The passwords are stored readable in the file, the same way FileZilla exports them. Anyone who gets the file
-            can log in to these servers.
+          <SectionMessage appearance="warning" title={t("Keep this file private")}>
+            {t("The passwords are stored readable in the file, the same way FileZilla exports them. Anyone who gets the file can log in to these servers.")}
           </SectionMessage>
         )}
       </div>

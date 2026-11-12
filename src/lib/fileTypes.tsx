@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { t } from "./i18n";
 
 type Category =
   | "folder"
@@ -30,24 +31,24 @@ function register(category: Category, label: string, exts: string[]) {
   for (const ext of exts) EXTENSIONS[ext] = [category, label];
 }
 
-register("image", "image", ["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "tif", "tiff", "avif", "heic", "psd"]);
-register("image", "vector image", ["svg", "eps", "ai"]);
-register("video", "video", ["mp4", "mkv", "mov", "avi", "webm", "wmv", "m4v", "flv"]);
-register("audio", "audio", ["mp3", "wav", "flac", "ogg", "m4a", "aac", "wma", "opus"]);
-register("archive", "archive", ["zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz", "zst", "iso", "cab"]);
-register("code", "source file", ["js", "mjs", "cjs", "ts", "tsx", "jsx", "rs", "py", "go", "java", "kt", "c", "h", "cpp", "hpp", "cc", "cs", "rb", "php", "swift", "lua", "dart", "vue", "svelte", "sql"]);
-register("web", "web page", ["html", "htm", "xhtml"]);
-register("web", "stylesheet", ["css", "scss", "sass", "less"]);
-register("data", "data file", ["json", "xml", "yaml", "yml", "toml", "ini", "cfg", "conf", "env", "properties", "lock"]);
-register("document", "document", ["doc", "docx", "odt", "rtf", "pages"]);
-register("pdf", "PDF document", ["pdf"]);
-register("spreadsheet", "spreadsheet", ["xls", "xlsx", "ods", "csv", "tsv", "numbers"]);
-register("slides", "presentation", ["ppt", "pptx", "odp", "key"]);
-register("text", "text file", ["txt", "md", "markdown", "log", "rst", "nfo"]);
-register("font", "font", ["ttf", "otf", "woff", "woff2", "eot"]);
-register("key", "key or certificate", ["pem", "crt", "cer", "key", "pub", "p12", "pfx", "gpg", "asc"]);
-register("executable", "program", ["exe", "msi", "bat", "cmd", "ps1", "sh", "bin", "app", "apk", "dmg", "deb", "rpm"]);
-register("database", "database", ["db", "sqlite", "sqlite3", "mdb", "accdb"]);
+register("image", t("image"), ["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "tif", "tiff", "avif", "heic", "psd"]);
+register("image", t("vector image"), ["svg", "eps", "ai"]);
+register("video", t("video"), ["mp4", "mkv", "mov", "avi", "webm", "wmv", "m4v", "flv"]);
+register("audio", t("audio"), ["mp3", "wav", "flac", "ogg", "m4a", "aac", "wma", "opus"]);
+register("archive", t("archive"), ["zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz", "zst", "iso", "cab"]);
+register("code", t("source file"), ["js", "mjs", "cjs", "ts", "tsx", "jsx", "rs", "py", "go", "java", "kt", "c", "h", "cpp", "hpp", "cc", "cs", "rb", "php", "swift", "lua", "dart", "vue", "svelte", "sql"]);
+register("web", t("web page"), ["html", "htm", "xhtml"]);
+register("web", t("stylesheet"), ["css", "scss", "sass", "less"]);
+register("data", t("data file"), ["json", "xml", "yaml", "yml", "toml", "ini", "cfg", "conf", "env", "properties", "lock"]);
+register("document", t("document"), ["doc", "docx", "odt", "rtf", "pages"]);
+register("pdf", t("PDF document"), ["pdf"]);
+register("spreadsheet", t("spreadsheet"), ["xls", "xlsx", "ods", "csv", "tsv", "numbers"]);
+register("slides", t("presentation"), ["ppt", "pptx", "odp", "key"]);
+register("text", t("text file"), ["txt", "md", "markdown", "log", "rst", "nfo"]);
+register("font", t("font"), ["ttf", "otf", "woff", "woff2", "eot"]);
+register("key", t("key or certificate"), ["pem", "crt", "cer", "key", "pub", "p12", "pfx", "gpg", "asc"]);
+register("executable", t("program"), ["exe", "msi", "bat", "cmd", "ps1", "sh", "bin", "app", "apk", "dmg", "deb", "rpm"]);
+register("database", t("database"), ["db", "sqlite", "sqlite3", "mdb", "accdb"]);
 
 export function extensionOf(name: string): string {
   const dot = name.lastIndexOf(".");
@@ -55,7 +56,7 @@ export function extensionOf(name: string): string {
 }
 
 export function typeInfo(name: string, isDir: boolean): TypeInfo {
-  if (isDir) return { category: "folder", label: "Folder" };
+  if (isDir) return { category: "folder", label: t("Folder") };
   const ext = extensionOf(name);
   const known = EXTENSIONS[ext];
   if (known) {
@@ -64,10 +65,10 @@ export function typeInfo(name: string, isDir: boolean): TypeInfo {
     // "PNG image", but not "PDF PDF document".
     return {
       category,
-      label: label.startsWith(upper) ? label : `${upper} ${label}`,
+      label: label.startsWith(upper) ? label : t("{0} {1}", upper, label),
     };
   }
-  return { category: "file", label: ext ? `${ext.toUpperCase()} file` : "File" };
+  return { category: "file", label: ext ? t("{0} file", ext.toUpperCase()) : t("File") };
 }
 
 // ---------------------------------------------------------------------------
